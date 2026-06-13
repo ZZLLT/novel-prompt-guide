@@ -8,6 +8,7 @@ from typing import List, Dict, Any, Optional
 import json
 
 import ai_service
+from command_parser import parser, executor
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -151,49 +152,29 @@ async def ai_analyze_consistency(request: AnalyzeConsistencyRequest):
 
 @router.post("/command")
 async def ai_command(request: CommandRequest):
-    """执行AI命令"""
-    # TODO: 实现命令解析和执行
-    # 这个功能比较复杂，暂时返回简单响应
+    """执行AI智能命令"""
     try:
-        # 简单解析命令
-        command = request.command.lower()
+        # 1. 解析命令
+        action, params, original_command = parser.parse(request.command)
 
-        if "创建" in command and "角色" in command:
-            # 生成角色
-            character = await ai_service.generate_character(command)
-            return {
-                "success": True,
-                "message": f"已创建角色：{character.get('name')}",
-                "data": {"type": "character", "entity": character}
-            }
-        elif "生成" in command and "场景" in command:
-            # 生成场景
-            scene = await ai_service.generate_scene(command, None)
-            return {
-                "success": True,
-                "message": f"已生成场景：{scene.get('title')}",
-                "data": {"type": "scene", "entity": scene}
-            }
-        elif "创建" in command and "剧情" in command:
-            # 生成剧情线
-            plotline = await ai_service.generate_plotline(command)
-            return {
-                "success": True,
-                "message": f"已创建剧情线：{plotline.get('title')}",
-                "data": {"type": "plotline", "entity": plotline}
-            }
-        else:
-            # 默认对话
-            messages = [{"role": "user", "content": command}]
-            response = await ai_service.chat(messages, request.context)
-            return {
-                "success": True,
-                "message": response,
-                "data": None
-            }
+        # 2. 如果识别出命令，执行
+        if action:
+            result = await executor.execute(action, params, request.context, ai_service)
+            return result
+
+        # 3. 未识别的命令，作为普通对话处理
+        messages = [{"role": "user", "content": original_command}]
+        response = await ai_service.chat(messages, request.context)
+        return {
+            "success": True,
+            "message": response,
+            "data": {"type": "text", "content": response},
+            "action_type": "chat"
+        }
     except Exception as e:
         return {
             "success": False,
-            "message": "执行失败",
-            "error": str(e)
+            "message": "命令执行失败",
+            "error": str(e),
+            "action_type": "error"
         }
