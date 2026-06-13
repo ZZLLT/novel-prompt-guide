@@ -77,7 +77,13 @@ async def startup_event():
 
     if api_key:
         try:
-            ai_service.init_ai_client(api_key, base_url)
+            ai_service.init_ai_client(
+                api_key=api_key,
+                base_url=base_url,
+                model=_config["model"],
+                temperature=_config["temperature"],
+                max_tokens=_config["max_tokens"]
+            )
             print("AI客户端已初始化")
             print(f"   Base URL: {base_url}")
             print(f"   Model: {_config['model']}")
@@ -141,7 +147,13 @@ async def save_llm_config(config: LlmConfigInput) -> LlmConfigOutput:
     # 重新初始化AI客户端
     if _config.get("api_key"):
         try:
-            ai_service.init_ai_client(_config["api_key"], _config["endpoint"])
+            ai_service.init_ai_client(
+                api_key=_config["api_key"],
+                base_url=_config["endpoint"],
+                model=_config["model"],
+                temperature=_config["temperature"],
+                max_tokens=_config["max_tokens"]
+            )
             print("AI客户端已重新初始化")
         except Exception as e:
             print(f"AI客户端初始化失败: {e}")

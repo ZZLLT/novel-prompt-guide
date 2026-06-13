@@ -7,13 +7,24 @@ from openai import AsyncOpenAI
 import json
 import os
 import time
+import sys
+
+# 确保stdout使用UTF-8编码
+if sys.stdout.encoding != 'utf-8':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # 初始化OpenAI客户端
 client = None
+current_config = {
+    "model": "gpt-4o-mini",
+    "temperature": 0.7,
+    "max_tokens": 2000
+}
 
-def init_ai_client(api_key: str = None, base_url: str = None):
+def init_ai_client(api_key: str = None, base_url: str = None, model: str = None, temperature: float = None, max_tokens: int = None):
     """初始化AI客户端"""
-    global client
+    global client, current_config
     api_key = api_key or os.getenv("OPENAI_API_KEY")
     base_url = base_url or os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 
@@ -24,6 +35,14 @@ def init_ai_client(api_key: str = None, base_url: str = None):
         api_key=api_key,
         base_url=base_url
     )
+
+    # 更新配置
+    if model:
+        current_config["model"] = model
+    if temperature is not None:
+        current_config["temperature"] = temperature
+    if max_tokens is not None:
+        current_config["max_tokens"] = max_tokens
 
 # 提示词模板
 PROMPTS = {
@@ -220,10 +239,10 @@ async def chat(messages: List[Dict[str, str]], context: Dict[str, Any]) -> str:
     # 调用OpenAI
     try:
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",  # 可配置
+            model=current_config["model"],
             messages=[system_message] + messages,
-            temperature=0.7,
-            max_tokens=2000
+            temperature=current_config["temperature"],
+            max_tokens=current_config["max_tokens"]
         )
 
         return response.choices[0].message.content
@@ -242,10 +261,10 @@ async def chat_stream(messages: List[Dict[str, str]], context: Dict[str, Any]) -
 
     try:
         stream = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=current_config["model"],
             messages=[system_message] + messages,
-            temperature=0.7,
-            max_tokens=2000,
+            temperature=current_config["temperature"],
+            max_tokens=current_config["max_tokens"],
             stream=True
         )
 
@@ -262,7 +281,7 @@ async def generate_character(prompt: str) -> Dict[str, Any]:
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=current_config["model"],
             messages=[
                 {"role": "system", "content": "你是一位角色设计专家。"},
                 {"role": "user", "content": PROMPTS["generate_character"].format(prompt=prompt)}
@@ -301,7 +320,7 @@ async def generate_scene(prompt: str, context: Optional[Dict[str, Any]] = None) 
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=current_config["model"],
             messages=[
                 {"role": "system", "content": "你是一位场景创作专家。"},
                 {"role": "user", "content": PROMPTS["generate_scene"].format(prompt=prompt, context_info=context_info)}
@@ -333,7 +352,7 @@ async def generate_plotline(prompt: str) -> Dict[str, Any]:
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=current_config["model"],
             messages=[
                 {"role": "system", "content": "你是一位剧情设计专家。"},
                 {"role": "user", "content": PROMPTS["generate_plotline"].format(prompt=prompt)}
@@ -363,7 +382,7 @@ async def expand_content(content: str, target_length: int, context: Optional[Dic
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=current_config["model"],
             messages=[
                 {"role": "system", "content": "你是一位内容扩写专家。"},
                 {"role": "user", "content": PROMPTS["expand_content"].format(content=content, target_length=target_length)}
@@ -383,7 +402,7 @@ async def rewrite_content(content: str, instruction: str, context: Optional[Dict
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=current_config["model"],
             messages=[
                 {"role": "system", "content": "你是一位内容改写专家。"},
                 {"role": "user", "content": PROMPTS["rewrite_content"].format(content=content, instruction=instruction)}
@@ -403,7 +422,7 @@ async def summarize_content(content: str, target_length: int) -> str:
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=current_config["model"],
             messages=[
                 {"role": "system", "content": "你是一位内容精简专家。"},
                 {"role": "user", "content": PROMPTS["summarize_content"].format(content=content, target_length=target_length)}
@@ -427,7 +446,7 @@ async def analyze_consistency(entities: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=current_config["model"],
             messages=[
                 {"role": "system", "content": "你是一位故事一致性分析专家。"},
                 {"role": "user", "content": PROMPTS["analyze_consistency"].format(

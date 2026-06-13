@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API测试页面</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        button {
+            background: #2383e2;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        button:hover {
+            background: #1b6ec2;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            color: #0f7b6c;
+        }
+        .error {
+            color: #e03e3e;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: 500;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔧 DeepSeek API 测试工具</h1>
+        <p>测试API配置和AI对话功能</p>
+
+        <label>API密钥 (sk-开头)</label>
+        <input type="password" id="apiKey" placeholder="sk-your-api-key">
+
+        <button onclick="testConfig()">1️⃣ 测试配置API</button>
+        <button onclick="testChat()">2️⃣ 测试AI对话</button>
+        <button onclick="checkHealth()">3️⃣ 检查健康状态</button>
+
+        <div id="result" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        function showResult(message, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = isError ? 'result error' : 'result success';
+            resultDiv.textContent = message;
+        }
+
+        async function checkHealth() {
+            try {
+                showResult('正在检查健康状态...');
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                showResult('✅ 健康检查成功！\n\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('❌ 健康检查失败：\n' + error.message, true);
+            }
+        }
+
+        async function testConfig() {
+            const apiKey = document.getElementById('apiKey').value;
+            if (!apiKey) {
+                showResult('❌ 请先填写API密钥！', true);
+                return;
+            }
+
+            try {
+                showResult('正在配置DeepSeek API...');
+                const response = await fetch(`${API_BASE}/llm/config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        endpoint: 'https://api.deepseek.com/v1',
+                        model: 'deepseek-v4-flash',
+                        model_routes: {
+                            planner: 'deepseek-v4-flash',
+                            writer: 'deepseek-v4-flash',
+                            reviewer: 'deepseek-v4-flash',
+                            assistant: 'deepseek-v4-flash'
+                        },
+                        api_key: apiKey,
+                        api_enabled: true,
+                        clear_api_key: false,
+                        temperature: 0.7,
+                        max_tokens: 2000
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                showResult('✅ 配置成功！\n\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('❌ 配置失败：\n' + error.message, true);
+            }
+        }
+
+        async function testChat() {
+            try {
+                showResult('正在测试AI对话...');
+                const response = await fetch(`${API_BASE}/ai/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'user', content: '你好，请用一句话介绍你自己' }
+                        ],
+                        context: {
+                            workspace: 'test'
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorData}`);
+                }
+
+                const data = await response.json();
+                showResult('✅ AI对话成功！\n\nAI回复：\n' + data.response);
+            } catch (error) {
+                showResult('❌ AI对话失败：\n' + error.message + '\n\n提示：请先运行步骤1配置API', true);
+            }
+        }
+    </script>
+</body>
+</html>

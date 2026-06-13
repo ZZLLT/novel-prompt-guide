@@ -7,8 +7,8 @@ import type { Plotline } from "../types/plotline";
  * AI服务 - 与LLM API交互
  */
 
-// API配置
-const API_BASE_URL = "http://127.0.0.1:8000/api";
+// API配置 - 使用相对路径，通过Vite代理转发到后端
+const API_BASE_URL = "/api";
 
 export class AIService {
   /**
