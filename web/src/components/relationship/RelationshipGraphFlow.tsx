@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -15,6 +15,8 @@ import 'reactflow/dist/style.css';
 
 import CharacterNode, { type CharacterNodeData } from './CharacterNode';
 import RelationshipEdge, { type RelationshipEdgeData } from './RelationshipEdge';
+import { RelationshipToolbar } from './RelationshipToolbar';
+import { RelationshipLegend } from './RelationshipLegend';
 import { getLayoutedElements } from './layout';
 import type { StoryActor, RelationshipEdge as RelEdge } from '../../data/storyFlow';
 
@@ -84,7 +86,8 @@ function RelationshipGraphFlow({
   onNodeClick,
   onEdgeClick,
 }: RelationshipGraphFlowProps) {
-  const { fitView } = useReactFlow();
+  const { fitView, zoomIn, zoomOut } = useReactFlow();
+  const [legendVisible, setLegendVisible] = useState(true);
 
   // 转换和布局数据
   const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
@@ -139,48 +142,59 @@ function RelationshipGraphFlow({
   );
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodeClick={handleNodeClick}
-        onEdgeClick={handleEdgeClick}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        fitView
-        minZoom={0.5}
-        maxZoom={2}
-        defaultEdgeOptions={{
-          style: { strokeWidth: 2 },
-        }}
-      >
-        <Background color="#e8e5e0" gap={16} size={1} />
-        <Controls
-          showZoom
-          showFitView
-          showInteractive={false}
-        />
-        <MiniMap
-          nodeColor={(node) => {
-            const laneColors: Record<string, string> = {
-              lead: '#3b82f6',
-              ally: '#ec4899',
-              force: '#f59e0b',
-              shadow: '#8b5cf6',
-            };
-            return laneColors[node.data.lane] || '#999';
+    <>
+      <RelationshipToolbar
+        actorCount={actors.length}
+        relationshipCount={relationships.length}
+        onZoomIn={() => zoomIn()}
+        onZoomOut={() => zoomOut()}
+        onFitView={() => fitView({ padding: 0.2, duration: 500 })}
+        onToggleLegend={() => setLegendVisible(!legendVisible)}
+      />
+      <div className="relationship-canvas-wrapper">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeClick={handleNodeClick}
+          onEdgeClick={handleEdgeClick}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          fitView
+          minZoom={0.5}
+          maxZoom={2}
+          defaultEdgeOptions={{
+            style: { strokeWidth: 2 },
           }}
-          style={{
-            background: '#f7f6f3',
-            border: '1px solid #e8e5e0',
-            borderRadius: '4px',
-          }}
-          maskColor="rgba(0, 0, 0, 0.1)"
-        />
-      </ReactFlow>
-    </div>
+        >
+          <Background color="#e8e5e0" gap={16} size={1} />
+          <Controls
+            showZoom
+            showFitView
+            showInteractive={false}
+          />
+          <MiniMap
+            nodeColor={(node) => {
+              const laneColors: Record<string, string> = {
+                lead: '#3b82f6',
+                ally: '#ec4899',
+                force: '#f59e0b',
+                shadow: '#8b5cf6',
+              };
+              return laneColors[node.data.lane] || '#999';
+            }}
+            style={{
+              background: '#f7f6f3',
+              border: '1px solid #e8e5e0',
+              borderRadius: '4px',
+            }}
+            maskColor="rgba(0, 0, 0, 0.1)"
+          />
+        </ReactFlow>
+        <RelationshipLegend visible={legendVisible} />
+      </div>
+    </>
   );
 }
 
