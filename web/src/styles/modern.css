@@ -3412,6 +3412,216 @@ a:hover { text-decoration: underline; }
   overflow-y: auto;
 }
 
+/* ===== AI Assistant Input ===== */
+.ai-assistant-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.ai-assistant-input-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  background: var(--color-bg-elevated);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-3);
+}
+
+.ai-assistant-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: var(--sp-3);
+  background: var(--color-bg);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  resize: vertical;
+  line-height: 1.6;
+  transition: border-color 0.2s var(--ease);
+}
+
+.ai-assistant-textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-subtle);
+}
+
+.ai-assistant-textarea::placeholder {
+  color: var(--color-text-faint);
+}
+
+.ai-assistant-input-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.input-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+}
+
+/* ===== Smart Recommendation ===== */
+.smart-recommendation {
+  background: linear-gradient(135deg, var(--color-bg-elevated) 0%, var(--color-accent-subtle) 100%);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  animation: slideIn 0.3s var(--ease);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.recommendation-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  color: var(--color-accent);
+}
+
+.recommendation-header h4 {
+  font-size: var(--text-base);
+  font-weight: 600;
+  margin: 0;
+}
+
+.recommendation-scene {
+  margin-bottom: var(--sp-3);
+}
+
+.scene-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--color-accent);
+  color: white;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.recommendation-section {
+  margin-bottom: var(--sp-4);
+}
+
+.recommendation-section:last-child {
+  margin-bottom: 0;
+}
+
+.recommendation-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--sp-2) 0;
+}
+
+.recommendation-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.recommendation-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-1);
+  padding: var(--sp-3);
+  background: var(--color-bg-elevated);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  width: 100%;
+}
+
+.recommendation-item:hover {
+  border-color: var(--color-accent);
+  background: var(--color-bg);
+  transform: translateX(4px);
+}
+
+.recommendation-item-compact {
+  flex-direction: row;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-3);
+}
+
+.recommendation-item-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.recommendation-item-desc {
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+}
+
+.recommendation-item-meta {
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+}
+
+.recommendation-tips {
+  padding: var(--sp-3);
+  background: var(--color-bg-elevated);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  margin-top: var(--sp-3);
+}
+
+.tips-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--sp-2) 0;
+}
+
+.tips-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.tips-list li {
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+  padding-left: var(--sp-4);
+  position: relative;
+}
+
+.tips-list li::before {
+  content: "•";
+  position: absolute;
+  left: var(--sp-2);
+  color: var(--color-accent);
+  font-weight: bold;
+}
+
 /* ── StoryUniverseDeck ──────────────────────────────────────── */
 .universe-deck {
   background: var(--color-bg);
