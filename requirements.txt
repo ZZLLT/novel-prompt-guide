@@ -1,0 +1,8 @@
+# Backend dependencies for WPS Novel Writing System v5
+
+# Cross-platform file locking for concurrent file operations
+portalocker>=3.0.0
+
+# Testing dependencies
+pytest>=7.4.0
+pytest-anyio>=0.0.0

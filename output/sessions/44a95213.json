@@ -1,0 +1,31 @@
+{
+  "session_id": "44a95213",
+  "title": "逆鳞",
+  "genre": "都市",
+  "style": "爽文快节奏",
+  "stage": "new",
+  "created_at": "2026-05-25T22:22:37.980632",
+  "updated_at": "2026-05-25T22:22:37.991154",
+  "worldbuilding": {
+    "genre": "ds",
+    "title": "逆鳞",
+    "background": "[🌌 世界背景] AI生成内容（此处应为实际返回）",
+    "power_system": "[⚡ 力量体系] AI生成内容（此处应为实际返回）",
+    "social": "[🏛️ 社会结构] AI生成内容（此处应为实际返回）",
+    "geography": "[🗺️ 地理版图] AI生成内容（此处应为实际返回）",
+    "history": "[📜 历史神话] AI生成内容（此处应为实际返回）"
+  },
+  "characters": {
+    "data": {
+      "protagonist": "[⭐ 主角设计] AI生成内容",
+      "female_lead": "[🌸 女主角/重要女性角色] AI生成内容",
+      "antagonist": "[💀 反派/对手设计] AI生成内容",
+      "supporting": "[🤝 配角群像] AI生成内容",
+      "relationships": "[🕸️ 人物关系网] AI生成内容"
+    },
+    "characters_list": []
+  },
+  "plot": {},
+  "chapters": [],
+  "editing_notes": []
+}

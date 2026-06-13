@@ -1,0 +1,342 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/AgentCommandDeck.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/@fs/D:/OH-WorkSpace/novel-prompt-guide/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=e4169291"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import { StatusPill } from "/src/components/ui.tsx";
+import { Lightbulb, ListChecks, Send, WandSparkles } from "/@fs/D:/OH-WorkSpace/novel-prompt-guide/node_modules/.vite/deps/lucide-react.js?v=e4169291";
+export function AgentCommandDeck({
+  agents,
+  assistantBusy,
+  assistantInput,
+  assistantMessages,
+  assistantStatus,
+  chatInput,
+  messages,
+  onAssistantInput,
+  onAssistantShortcut,
+  onAskAssistant,
+  onChatInput,
+  onSend
+}) {
+  const activeAgent = agents.find((agent) => agent.status === "working") ?? agents.find((agent) => agent.status === "queued") ?? agents[0];
+  const assistantStatusLabel = {
+    idle: "待提问",
+    sending: "发送中",
+    queued: "已入队",
+    answered: "已回复",
+    error: "失败"
+  };
+  const askButtonText = assistantBusy ? "等待 AI 返回" : "询问 AI 助手";
+  return /* @__PURE__ */ jsxDEV("div", { className: "agent-deck", children: [
+    /* @__PURE__ */ jsxDEV("section", { className: "ai-assistant-box ai-console-panel", "aria-label": "AI助手", "aria-busy": assistantBusy, children: [
+      /* @__PURE__ */ jsxDEV("header", { className: "ai-console-header", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("span", { children: "Assistant Control" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 49,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("h3", { children: "AI 控制台" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 50,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { children: "只在你点击时提交问题，默认使用短上下文和当前任务路由。" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 51,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 48,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { className: `assistant-status assistant-${assistantStatus}`, children: assistantStatusLabel[assistantStatus] }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 53,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+        lineNumber: 47,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "assistant-runtime-bar", "aria-label": "AI助手运行状态", children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("span", { children: "当前任务模型" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 57,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("strong", { children: [
+            "当前处理：",
+            activeAgent?.name ?? "助手 Agent"
+          ] }, void 0, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 58,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 56,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("span", { children: "提示词广场" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 61,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("strong", { children: "短上下文 / 可复用" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 62,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 60,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("span", { children: "提交方式" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 65,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("strong", { children: "手动触发" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 66,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 64,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+        lineNumber: 55,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "assistant-quick-actions", children: [
+        /* @__PURE__ */ jsxDEV("button", { type: "button", "aria-label": "生成提示词选项", onClick: () => onAssistantShortcut("prompt"), children: [
+          /* @__PURE__ */ jsxDEV(WandSparkles, { "aria-hidden": "true", size: 15 }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 71,
+            columnNumber: 13
+          }, this),
+          "提示词"
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 70,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("button", { type: "button", "aria-label": "获取下一步优化", onClick: () => onAssistantShortcut("next"), children: [
+          /* @__PURE__ */ jsxDEV(ListChecks, { "aria-hidden": "true", size: 15 }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 75,
+            columnNumber: 13
+          }, this),
+          "下一步"
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 74,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+        lineNumber: 69,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "assistant-log", children: assistantMessages.map(
+        (message) => /* @__PURE__ */ jsxDEV("p", { className: `message-${message.from}`, children: message.text }, message.id, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 81,
+          columnNumber: 11
+        }, this)
+      ) }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+        lineNumber: 79,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("label", { className: "assistant-input", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "AI 助手提问" }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 85,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV(
+          "textarea",
+          {
+            "aria-label": "AI助手提问",
+            value: assistantInput,
+            maxLength: 600,
+            onChange: (event) => onAssistantInput(event.target.value),
+            placeholder: "例如：基于当前阶段，给我一个更省 token 的提示词和下一步优化顺序。"
+          },
+          void 0,
+          false,
+          {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 86,
+            columnNumber: 11
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+        lineNumber: 84,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { type: "button", "aria-label": "询问AI助手", disabled: !assistantInput.trim() || assistantBusy, onClick: () => onAskAssistant(), children: [
+        /* @__PURE__ */ jsxDEV(Lightbulb, { "aria-hidden": "true", size: 16 }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 95,
+          columnNumber: 11
+        }, this),
+        askButtonText
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+        lineNumber: 94,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+      lineNumber: 46,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "agent-list", children: agents.map(
+      (agent) => /* @__PURE__ */ jsxDEV("article", { className: `agent-card agent-${agent.status}`, children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "agent-head", children: [
+          /* @__PURE__ */ jsxDEV("span", { className: "agent-signal", children: agent.signal }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 104,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV(StatusPill, { status: agent.status }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 105,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 103,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("h3", { children: agent.name }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 107,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { children: agent.role }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 108,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("small", { children: agent.output || agent.task }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 109,
+          columnNumber: 13
+        }, this)
+      ] }, agent.id, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+        lineNumber: 102,
+        columnNumber: 9
+      }, this)
+    ) }, void 0, false, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+      lineNumber: 100,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "command-stream", children: [
+      /* @__PURE__ */ jsxDEV("h3", { children: "任务流" }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+        lineNumber: 115,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "message-log", children: messages.map(
+        (message) => /* @__PURE__ */ jsxDEV("p", { className: `message-${message.from}`, children: message.text }, message.id, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 118,
+          columnNumber: 11
+        }, this)
+      ) }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+        lineNumber: 116,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("label", { className: "command-input", children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "调度指令" }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 122,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV(
+          "textarea",
+          {
+            value: chatInput,
+            onChange: (event) => onChatInput(event.target.value),
+            placeholder: "例如：让剧情策划检查第一章钩子是否足够强。"
+          },
+          void 0,
+          false,
+          {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+            lineNumber: 123,
+            columnNumber: 11
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+        lineNumber: 121,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { type: "button", onClick: onSend, children: [
+        /* @__PURE__ */ jsxDEV(Send, { "aria-hidden": "true", size: 16 }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+          lineNumber: 130,
+          columnNumber: 11
+        }, this),
+        "发送给 Agent"
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+        lineNumber: 129,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+      lineNumber: 114,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx",
+    lineNumber: 45,
+    columnNumber: 5
+  }, this);
+}
+_c = AgentCommandDeck;
+var _c;
+$RefreshReg$(_c, "AgentCommandDeck");
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+function $RefreshReg$(type, id) {
+  return RefreshRuntime.register(type, "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/AgentCommandDeck.tsx " + id);
+}
+function $RefreshSig$() {
+  return RefreshRuntime.createSignatureFunctionForTransform();
+}
+
+//# sourceMappingURL=data:application/json;base64,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QUNBLHVCQUFDLFdBQU0sV0FBVSxpQkFDZjtBQUFBLCtCQUFDLFVBQUssb0JBQU47QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUFVO0FBQUEsUUFDVjtBQUFBLFVBQUM7QUFBQTtBQUFBLFlBQ0MsT0FBT3ZCO0FBQUFBLFlBQ1AsVUFBVSxDQUFDd0IsVUFBa0RuQixZQUFZbUIsTUFBTUMsT0FBT0MsS0FBSztBQUFBLFlBQzNGLGFBQVk7QUFBQTtBQUFBLFVBSGQ7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLFFBR3FDO0FBQUEsV0FMdkM7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQU9BO0FBQUEsTUFDQSx1QkFBQyxZQUFPLE1BQUssVUFBUyxTQUFTcEIsUUFDN0I7QUFBQSwrQkFBQyxRQUFLLGVBQVksUUFBTyxNQUFNLE1BQS9CO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBa0M7QUFBQTtBQUFBLFdBRHBDO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFHQTtBQUFBLFNBbEJGO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0FtQkE7QUFBQSxPQXhGRjtBQUFBO0FBQUE7QUFBQTtBQUFBLFNBeUZBO0FBRUo7QUFBQzBCLEtBbklldEM7QUFBZ0IsSUFBQXNDO0FBQUEsYUFBQUEsSUFBQSIsIm5hbWVzIjpbIlN0YXR1c1BpbGwiLCJMaWdodGJ1bGIiLCJMaXN0Q2hlY2tzIiwiU2VuZCIsIldhbmRTcGFya2xlcyIsIkFnZW50Q29tbWFuZERlY2siLCJhZ2VudHMiLCJhc3Npc3RhbnRCdXN5IiwiYXNzaXN0YW50SW5wdXQiLCJhc3Npc3RhbnRNZXNzYWdlcyIsImFzc2lzdGFudFN0YXR1cyIsImNoYXRJbnB1dCIsIm1lc3NhZ2VzIiwib25Bc3Npc3RhbnRJbnB1dCIsIm9uQXNzaXN0YW50U2hvcnRjdXQiLCJvbkFza0Fzc2lzdGFudCIsIm9uQ2hhdElucHV0Iiwib25TZW5kIiwiYWN0aXZlQWdlbnQiLCJmaW5kIiwiYWdlbnQiLCJzdGF0dXMiLCJhc3Npc3RhbnRTdGF0dXNMYWJlbCIsImlkbGUiLCJzZW5kaW5nIiwicXVldWVkIiwiYW5zd2VyZWQiLCJlcnJvciIsImFza0J1dHRvblRleHQiLCJuYW1lIiwibWFwIiwibWVzc2FnZSIsImZyb20iLCJ0ZXh0IiwiaWQiLCJldmVudCIsInRhcmdldCIsInZhbHVlIiwidHJpbSIsInNpZ25hbCIsInJvbGUiLCJvdXRwdXQiLCJ0YXNrIiwiX2MiXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiQWdlbnRDb21tYW5kRGVjay50c3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgU3RhdHVzUGlsbCB9IGZyb20gXCIuL3VpXCI7XG5pbXBvcnQgdHlwZSB7IEFnZW50UnVudGltZSwgQXNzaXN0YW50U3RhdHVzLCBDaGF0TWVzc2FnZSB9IGZyb20gXCIuLi9ob29rcy91c2VDb2NrcGl0XCI7XG5pbXBvcnQgeyBMaWdodGJ1bGIsIExpc3RDaGVja3MsIFNlbmQsIFdhbmRTcGFya2xlcyB9IGZyb20gXCJsdWNpZGUtcmVhY3RcIjtcblxuZXhwb3J0IGZ1bmN0aW9uIEFnZW50Q29tbWFuZERlY2soe1xuICBhZ2VudHMsXG4gIGFzc2lzdGFudEJ1c3ksXG4gIGFzc2lzdGFudElucHV0LFxuICBhc3Npc3RhbnRNZXNzYWdlcyxcbiAgYXNzaXN0YW50U3RhdHVzLFxuICBjaGF0SW5wdXQsXG4gIG1lc3NhZ2VzLFxuICBvbkFzc2lzdGFudElucHV0LFxuICBvbkFzc2lzdGFudFNob3J0Y3V0LFxuICBvbkFza0Fzc2lzdGFudCxcbiAgb25DaGF0SW5wdXQsXG4gIG9uU2VuZCxcbn06IHtcbiAgYWdlbnRzOiBBZ2VudFJ1bnRpbWVbXTtcbiAgYXNzaXN0YW50QnVzeTogYm9vbGVhbjtcbiAgYXNzaXN0YW50SW5wdXQ6IHN0cmluZztcbiAgYXNzaXN0YW50TWVzc2FnZXM6IENoYXRNZXNzYWdlW107XG4gIGFzc2lzdGFudFN0YXR1czogQXNzaXN0YW50U3RhdHVzO1xuICBjaGF0SW5wdXQ6IHN0cmluZztcbiAgbWVzc2FnZXM6IENoYXRNZXNzYWdlW107XG4gIG9uQXNzaXN0YW50SW5wdXQ6ICh2YWx1ZTogc3RyaW5nKSA9PiB2b2lkO1xuICBvbkFzc2lzdGFudFNob3J0Y3V0OiAoa2luZDogXCJwcm9tcHRcIiB8IFwibmV4dFwiKSA9PiB2b2lkO1xuICBvbkFza0Fzc2lzdGFudDogKCkgPT4gdm9pZDtcbiAgb25DaGF0SW5wdXQ6ICh2YWx1ZTogc3RyaW5nKSA9PiB2b2lkO1xuICBvblNlbmQ6ICgpID0+IHZvaWQ7XG59KSB7XG4gIGNvbnN0IGFjdGl2ZUFnZW50ID0gYWdlbnRzLmZpbmQoKGFnZW50KSA9PiBhZ2VudC5zdGF0dXMgPT09IFwid29ya2luZ1wiKVxuICAgID8/IGFnZW50cy5maW5kKChhZ2VudCkgPT4gYWdlbnQuc3RhdHVzID09PSBcInF1ZXVlZFwiKVxuICAgID8/IGFnZW50c1swXTtcbiAgY29uc3QgYXNzaXN0YW50U3RhdHVzTGFiZWw6IFJlY29yZDxBc3Npc3RhbnRTdGF0dXMsIHN0cmluZz4gPSB7XG4gICAgaWRsZTogXCLlvoXmj5Dpl65cIixcbiAgICBzZW5kaW5nOiBcIuWPkemAgeS4rVwiLFxuICAgIHF1ZXVlZDogXCLlt7LlhaXpmJ9cIixcbiAgICBhbnN3ZXJlZDogXCLlt7Llm57lpI1cIixcbiAgICBlcnJvcjogXCLlpLHotKVcIixcbiAgfTtcbiAgY29uc3QgYXNrQnV0dG9uVGV4dCA9IGFzc2lzdGFudEJ1c3kgPyBcIuetieW+hSBBSSDov5Tlm55cIiA6IFwi6K+i6ZeuIEFJIOWKqeaJi1wiO1xuXG4gIHJldHVybiAoXG4gICAgPGRpdiBjbGFzc05hbWU9XCJhZ2VudC1kZWNrXCI+XG4gICAgICA8c2VjdGlvbiBjbGFzc05hbWU9XCJhaS1hc3Npc3RhbnQtYm94IGFpLWNvbnNvbGUtcGFuZWxcIiBhcmlhLWxhYmVsPVwiQUnliqnmiYtcIiBhcmlhLWJ1c3k9e2Fzc2lzdGFudEJ1c3l9PlxuICAgICAgICA8aGVhZGVyIGNsYXNzTmFtZT1cImFpLWNvbnNvbGUtaGVhZGVyXCI+XG4gICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgIDxzcGFuPkFzc2lzdGFudCBDb250cm9sPC9zcGFuPlxuICAgICAgICAgICAgPGgzPkFJIOaOp+WItuWPsDwvaDM+XG4gICAgICAgICAgICA8cD7lj6rlnKjkvaDngrnlh7vml7bmj5DkuqTpl67popjvvIzpu5jorqTkvb/nlKjnn63kuIrkuIvmloflkozlvZPliY3ku7vliqHot6/nlLHjgII8L3A+XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgPHN0cm9uZyBjbGFzc05hbWU9e2Bhc3Npc3RhbnQtc3RhdHVzIGFzc2lzdGFudC0ke2Fzc2lzdGFudFN0YXR1c31gfT57YXNzaXN0YW50U3RhdHVzTGFiZWxbYXNzaXN0YW50U3RhdHVzXX08L3N0cm9uZz5cbiAgICAgICAgPC9oZWFkZXI+XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiYXNzaXN0YW50LXJ1bnRpbWUtYmFyXCIgYXJpYS1sYWJlbD1cIkFJ5Yqp5omL6L+Q6KGM54q25oCBXCI+XG4gICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgIDxzcGFuPuW9k+WJjeS7u+WKoeaooeWeizwvc3Bhbj5cbiAgICAgICAgICAgIDxzdHJvbmc+5b2T5YmN5aSE55CG77yae2FjdGl2ZUFnZW50Py5uYW1lID8/IFwi5Yqp5omLIEFnZW50XCJ9PC9zdHJvbmc+XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgIDxzcGFuPuaPkOekuuivjeW5v+Wcujwvc3Bhbj5cbiAgICAgICAgICAgIDxzdHJvbmc+55+t5LiK5LiL5paHIC8g5Y+v5aSN55SoPC9zdHJvbmc+XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgIDxzcGFuPuaPkOS6pOaWueW8jzwvc3Bhbj5cbiAgICAgICAgICAgIDxzdHJvbmc+5omL5Yqo6Kem5Y+RPC9zdHJvbmc+XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgIDwvZGl2PlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImFzc2lzdGFudC1xdWljay1hY3Rpb25zXCI+XG4gICAgICAgICAgPGJ1dHRvbiB0eXBlPVwiYnV0dG9uXCIgYXJpYS1sYWJlbD1cIueUn+aIkOaPkOekuuivjemAiemhuVwiIG9uQ2xpY2s9eygpID0+IG9uQXNzaXN0YW50U2hvcnRjdXQoXCJwcm9tcHRcIil9PlxuICAgICAgICAgICAgPFdhbmRTcGFya2xlcyBhcmlhLWhpZGRlbj1cInRydWVcIiBzaXplPXsxNX0gLz5cbiAgICAgICAgICAgIOaPkOekuuivjVxuICAgICAgICAgIDwvYnV0dG9uPlxuICAgICAgICAgIDxidXR0b24gdHlwZT1cImJ1dHRvblwiIGFyaWEtbGFiZWw9XCLojrflj5bkuIvkuIDmraXkvJjljJZcIiBvbkNsaWNrPXsoKSA9PiBvbkFzc2lzdGFudFNob3J0Y3V0KFwibmV4dFwiKX0+XG4gICAgICAgICAgICA8TGlzdENoZWNrcyBhcmlhLWhpZGRlbj1cInRydWVcIiBzaXplPXsxNX0gLz5cbiAgICAgICAgICAgIOS4i+S4gOatpVxuICAgICAgICAgIDwvYnV0dG9uPlxuICAgICAgICA8L2Rpdj5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJhc3Npc3RhbnQtbG9nXCI+XG4gICAgICAgICAge2Fzc2lzdGFudE1lc3NhZ2VzLm1hcCgobWVzc2FnZSkgPT4gKFxuICAgICAgICAgICAgPHAgY2xhc3NOYW1lPXtgbWVzc2FnZS0ke21lc3NhZ2UuZnJvbX1gfSBrZXk9e21lc3NhZ2UuaWR9PnttZXNzYWdlLnRleHR9PC9wPlxuICAgICAgICAgICkpfVxuICAgICAgICA8L2Rpdj5cbiAgICAgICAgPGxhYmVsIGNsYXNzTmFtZT1cImFzc2lzdGFudC1pbnB1dFwiPlxuICAgICAgICAgIDxzcGFuPkFJIOWKqeaJi+aPkOmXrjwvc3Bhbj5cbiAgICAgICAgICA8dGV4dGFyZWFcbiAgICAgICAgICAgIGFyaWEtbGFiZWw9XCJBSeWKqeaJi+aPkOmXrlwiXG4gICAgICAgICAgICB2YWx1ZT17YXNzaXN0YW50SW5wdXR9XG4gICAgICAgICAgICBtYXhMZW5ndGg9ezYwMH1cbiAgICAgICAgICAgIG9uQ2hhbmdlPXsoZXZlbnQ6IFJlYWN0LkNoYW5nZUV2ZW50PEhUTUxUZXh0QXJlYUVsZW1lbnQ+KSA9PiBvbkFzc2lzdGFudElucHV0KGV2ZW50LnRhcmdldC52YWx1ZSl9XG4gICAgICAgICAgICBwbGFjZWhvbGRlcj1cIuS+i+Wmgu+8muWfuuS6juW9k+WJjemYtuaute+8jOe7meaIkeS4gOS4quabtOecgSB0b2tlbiDnmoTmj5DnpLror43lkozkuIvkuIDmraXkvJjljJbpobrluo/jgIJcIlxuICAgICAgICAgIC8+XG4gICAgICAgIDwvbGFiZWw+XG4gICAgICAgIDxidXR0b24gdHlwZT1cImJ1dHRvblwiIGFyaWEtbGFiZWw9XCLor6Lpl65BSeWKqeaJi1wiIGRpc2FibGVkPXshYXNzaXN0YW50SW5wdXQudHJpbSgpIHx8IGFzc2lzdGFudEJ1c3l9IG9uQ2xpY2s9eygpID0+IG9uQXNrQXNzaXN0YW50KCl9PlxuICAgICAgICAgIDxMaWdodGJ1bGIgYXJpYS1oaWRkZW49XCJ0cnVlXCIgc2l6ZT17MTZ9IC8+XG4gICAgICAgICAge2Fza0J1dHRvblRleHR9XG4gICAgICAgIDwvYnV0dG9uPlxuICAgICAgPC9zZWN0aW9uPlxuXG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cImFnZW50LWxpc3RcIj5cbiAgICAgICAge2FnZW50cy5tYXAoKGFnZW50KSA9PiAoXG4gICAgICAgICAgPGFydGljbGUgY2xhc3NOYW1lPXtgYWdlbnQtY2FyZCBhZ2VudC0ke2FnZW50LnN0YXR1c31gfSBrZXk9e2FnZW50LmlkfT5cbiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiYWdlbnQtaGVhZFwiPlxuICAgICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9XCJhZ2VudC1zaWduYWxcIj57YWdlbnQuc2lnbmFsfTwvc3Bhbj5cbiAgICAgICAgICAgICAgPFN0YXR1c1BpbGwgc3RhdHVzPXthZ2VudC5zdGF0dXN9IC8+XG4gICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgIDxoMz57YWdlbnQubmFtZX08L2gzPlxuICAgICAgICAgICAgPHA+e2FnZW50LnJvbGV9PC9wPlxuICAgICAgICAgICAgPHNtYWxsPnthZ2VudC5vdXRwdXQgfHwgYWdlbnQudGFza308L3NtYWxsPlxuICAgICAgICAgIDwvYXJ0aWNsZT5cbiAgICAgICAgKSl9XG4gICAgICA8L2Rpdj5cblxuICAgICAgPGRpdiBjbGFzc05hbWU9XCJjb21tYW5kLXN0cmVhbVwiPlxuICAgICAgICA8aDM+5Lu75Yqh5rWBPC9oMz5cbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJtZXNzYWdlLWxvZ1wiPlxuICAgICAgICAgIHttZXNzYWdlcy5tYXAoKG1lc3NhZ2UpID0+IChcbiAgICAgICAgICAgIDxwIGNsYXNzTmFtZT17YG1lc3NhZ2UtJHttZXNzYWdlLmZyb219YH0ga2V5PXttZXNzYWdlLmlkfT57bWVzc2FnZS50ZXh0fTwvcD5cbiAgICAgICAgICApKX1cbiAgICAgICAgPC9kaXY+XG4gICAgICAgIDxsYWJlbCBjbGFzc05hbWU9XCJjb21tYW5kLWlucHV0XCI+XG4gICAgICAgICAgPHNwYW4+6LCD5bqm5oyH5LukPC9zcGFuPlxuICAgICAgICAgIDx0ZXh0YXJlYVxuICAgICAgICAgICAgdmFsdWU9e2NoYXRJbnB1dH1cbiAgICAgICAgICAgIG9uQ2hhbmdlPXsoZXZlbnQ6IFJlYWN0LkNoYW5nZUV2ZW50PEhUTUxUZXh0QXJlYUVsZW1lbnQ+KSA9PiBvbkNoYXRJbnB1dChldmVudC50YXJnZXQudmFsdWUpfVxuICAgICAgICAgICAgcGxhY2Vob2xkZXI9XCLkvovlpoLvvJrorqnliafmg4XnrZbliJLmo4Dmn6XnrKzkuIDnq6DpkqnlrZDmmK/lkKbotrPlpJ/lvLrjgIJcIlxuICAgICAgICAgIC8+XG4gICAgICAgIDwvbGFiZWw+XG4gICAgICAgIDxidXR0b24gdHlwZT1cImJ1dHRvblwiIG9uQ2xpY2s9e29uU2VuZH0+XG4gICAgICAgICAgPFNlbmQgYXJpYS1oaWRkZW49XCJ0cnVlXCIgc2l6ZT17MTZ9IC8+XG4gICAgICAgICAg5Y+R6YCB57uZIEFnZW50XG4gICAgICAgIDwvYnV0dG9uPlxuICAgICAgPC9kaXY+XG4gICAgPC9kaXY+XG4gICk7XG59XG4iXSwiZmlsZSI6IkQ6L09ILVdvcmtTcGFjZS9ub3ZlbC1wcm9tcHQtZ3VpZGUvd2ViL3NyYy9jb21wb25lbnRzL0FnZW50Q29tbWFuZERlY2sudHN4In0=

@@ -1,0 +1,74 @@
+:root {
+  /* 表面色 — Notion 暖白灰 */
+  --color-bg:            #ffffff;
+  --color-bg-subtle:     #f7f6f3;
+  --color-bg-muted:      #eeedea;
+
+  /* 文字 */
+  --color-text:          #37352f;
+  --color-text-subtle:   #6b6b6b;
+  --color-text-faint:    #9b9a97;
+  --color-text-inverse:  #ffffff;
+
+  /* 边框 */
+  --color-border:        #e8e5e0;
+  --color-border-strong: #d3d1cb;
+
+  /* 主色 — Notion 蓝 */
+  --color-accent:        #2383e2;
+  --color-accent-hover:  #1b6ec2;
+  --color-accent-subtle: #e7f3fb;
+
+  /* 语义色 */
+  --color-success:  #0f7b6c;
+  --color-warning:  #d9730d;
+  --color-error:    #e03e3e;
+
+  /* 字体 — 系统字体栈 */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI",
+               "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-mono: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+
+  /* 字号 */
+  --text-xs:   0.75rem;
+  --text-sm:   0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+
+  /* 间距 */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(15,15,15,0.06);
+  --shadow-md: 0 2px 8px rgba(15,15,15,0.08);
+  --shadow-lg: 0 8px 24px rgba(15,15,15,0.12);
+
+  /* 动画 */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration: 150ms;
+
+  /* 布局尺寸 */
+  --topbar-h:    48px;
+  --statusbar-h: 28px;
+  --rail-w:      220px;
+  --assistant-w: 360px;
+
+  /* Z-index */
+  --z-sticky: 10;
+  --z-modal-backdrop: 40;
+  --z-modal: 50;
+}

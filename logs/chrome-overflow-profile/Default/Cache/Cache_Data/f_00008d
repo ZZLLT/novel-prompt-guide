@@ -1,0 +1,343 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/InkOSReferencePanel.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/@fs/D:/OH-WorkSpace/novel-prompt-guide/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=a23026a1"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import { DatabaseZap, GitBranch, Route, ShieldCheck } from "/@fs/D:/OH-WorkSpace/novel-prompt-guide/node_modules/.vite/deps/lucide-react.js?v=945989d9";
+import {
+  inkosModelRoutes,
+  inkosPipelineStages,
+  inkosReviewGates,
+  inkosTruthFiles
+} from "/src/data/inkosInspired.ts";
+export function InkOSReferencePanel({ onOpen }) {
+  const firstStages = inkosPipelineStages.slice(0, 4);
+  return /* @__PURE__ */ jsxDEV("section", { className: "inkos-reference-panel", "aria-label": "创作流水线", children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "inkos-reference-header", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "WORKFLOW CONTROL" }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+          lineNumber: 16,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("h3", { children: "创作流水线" }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+          lineNumber: 17,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+        lineNumber: 15,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { type: "button", "aria-label": "打开创作流水线窗口", onClick: onOpen, children: [
+        /* @__PURE__ */ jsxDEV(Route, { "aria-hidden": "true", size: 15 }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+          lineNumber: 20,
+          columnNumber: 11
+        }, this),
+        "打开"
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+        lineNumber: 19,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+      lineNumber: 14,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "inkos-mini-flow", "aria-label": "十阶段预览", children: firstStages.map(
+      (stage) => /* @__PURE__ */ jsxDEV("article", { children: [
+        /* @__PURE__ */ jsxDEV("strong", { children: stage.label }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+          lineNumber: 27,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { children: stage.agent }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+          lineNumber: 28,
+          columnNumber: 13
+        }, this)
+      ] }, stage.id, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+        lineNumber: 26,
+        columnNumber: 9
+      }, this)
+    ) }, void 0, false, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+      lineNumber: 24,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("p", { children: "把“写正文”和“结算状态”拆开；默认只做可视化和结构提示，不自动触发 API。" }, void 0, false, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+      lineNumber: 32,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+    lineNumber: 13,
+    columnNumber: 5
+  }, this);
+}
+_c = InkOSReferencePanel;
+export function InkOSReferenceWindow() {
+  const pipelineText = inkosPipelineStages.map((stage) => stage.label).join(" -> ");
+  return /* @__PURE__ */ jsxDEV("div", { className: "inkos-window-layout", children: [
+    /* @__PURE__ */ jsxDEV("section", { className: "inkos-window-hero", children: [
+      /* @__PURE__ */ jsxDEV("span", { children: "AGENT PIPELINE / TOKEN SAFE" }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+        lineNumber: 45,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("h3", { children: "十阶段写作管线" }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+        lineNumber: 46,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("p", { children: pipelineText }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+        lineNumber: 47,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+      lineNumber: 44,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("section", { className: "inkos-pipeline-lane", "aria-label": "创作管线", children: inkosPipelineStages.map(
+      (stage, index) => /* @__PURE__ */ jsxDEV("article", { children: [
+        /* @__PURE__ */ jsxDEV("i", { children: String(index + 1).padStart(2, "0") }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+          lineNumber: 53,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("span", { children: stage.phase }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+            lineNumber: 55,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("strong", { children: stage.label }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+            lineNumber: 56,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { children: [
+            stage.agent,
+            "：",
+            stage.role
+          ] }, void 0, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+            lineNumber: 57,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("em", { children: stage.tokenPolicy }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+            lineNumber: 58,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+          lineNumber: 54,
+          columnNumber: 13
+        }, this)
+      ] }, stage.id, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+        lineNumber: 52,
+        columnNumber: 9
+      }, this)
+    ) }, void 0, false, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+      lineNumber: 50,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "inkos-window-columns", children: [
+      /* @__PURE__ */ jsxDEV("section", { className: "inkos-reference-card", children: [
+        /* @__PURE__ */ jsxDEV("header", { children: [
+          /* @__PURE__ */ jsxDEV(DatabaseZap, { "aria-hidden": "true", size: 17 }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+            lineNumber: 67,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("strong", { children: "真相文件" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+            lineNumber: 68,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+          lineNumber: 66,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "inkos-truth-grid", children: inkosTruthFiles.map(
+          (file) => /* @__PURE__ */ jsxDEV("article", { children: [
+            /* @__PURE__ */ jsxDEV("span", { children: file.owner }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+              lineNumber: 73,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("strong", { children: file.label }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+              lineNumber: 74,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("p", { children: file.purpose }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+              lineNumber: 75,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("em", { children: file.tokenPolicy }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+              lineNumber: 76,
+              columnNumber: 17
+            }, this)
+          ] }, file.id, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+            lineNumber: 72,
+            columnNumber: 13
+          }, this)
+        ) }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+          lineNumber: 70,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+        lineNumber: 65,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("section", { className: "inkos-reference-card", children: [
+        /* @__PURE__ */ jsxDEV("header", { children: [
+          /* @__PURE__ */ jsxDEV(ShieldCheck, { "aria-hidden": "true", size: 17 }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+            lineNumber: 84,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("strong", { children: "人工审核门" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+            lineNumber: 85,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+          lineNumber: 83,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "inkos-gate-list", children: inkosReviewGates.map(
+          (gate) => /* @__PURE__ */ jsxDEV("article", { children: [
+            /* @__PURE__ */ jsxDEV("strong", { children: gate.label }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+              lineNumber: 90,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("p", { children: gate.purpose }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+              lineNumber: 91,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("em", { children: gate.passSignal }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+              lineNumber: 92,
+              columnNumber: 17
+            }, this)
+          ] }, gate.label, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+            lineNumber: 89,
+            columnNumber: 13
+          }, this)
+        ) }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+          lineNumber: 87,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+        lineNumber: 82,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("section", { className: "inkos-reference-card", children: [
+        /* @__PURE__ */ jsxDEV("header", { children: [
+          /* @__PURE__ */ jsxDEV(GitBranch, { "aria-hidden": "true", size: 17 }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+            lineNumber: 100,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("strong", { children: "多模型路由" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+            lineNumber: 101,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+          lineNumber: 99,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "inkos-route-list", children: inkosModelRoutes.map(
+          (route) => /* @__PURE__ */ jsxDEV("article", { children: [
+            /* @__PURE__ */ jsxDEV("span", { children: route.agent }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+              lineNumber: 106,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("strong", { children: route.modelTier }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+              lineNumber: 107,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("p", { children: route.reason }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+              lineNumber: 108,
+              columnNumber: 17
+            }, this)
+          ] }, route.agent, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+            lineNumber: 105,
+            columnNumber: 13
+          }, this)
+        ) }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+          lineNumber: 103,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+        lineNumber: 98,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+      lineNumber: 64,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx",
+    lineNumber: 43,
+    columnNumber: 5
+  }, this);
+}
+_c2 = InkOSReferenceWindow;
+var _c, _c2;
+$RefreshReg$(_c, "InkOSReferencePanel");
+$RefreshReg$(_c2, "InkOSReferenceWindow");
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+function $RefreshReg$(type, id) {
+  return RefreshRuntime.register(type, "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/InkOSReferencePanel.tsx " + id);
+}
+function $RefreshSig$() {
+  return RefreshRuntime.createSignatureFunctionForTransform();
+}
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBZVU7QUFmVixTQUFTQSxhQUFhQyxXQUFXQyxPQUFPQyxtQkFBbUI7QUFDM0Q7QUFBQSxFQUNFQztBQUFBQSxFQUNBQztBQUFBQSxFQUNBQztBQUFBQSxFQUNBQztBQUFBQSxPQUNLO0FBRUEsZ0JBQVNDLG9CQUFvQixFQUFFQyxPQUErQixHQUFHO0FBQ3RFLFFBQU1DLGNBQWNMLG9CQUFvQk0sTUFBTSxHQUFHLENBQUM7QUFFbEQsU0FDRSx1QkFBQyxhQUFRLFdBQVUseUJBQXdCLGNBQVcsU0FDcEQ7QUFBQSwyQkFBQyxTQUFJLFdBQVUsMEJBQ2I7QUFBQSw2QkFBQyxTQUNDO0FBQUEsK0JBQUMsVUFBSyxnQ0FBTjtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQXNCO0FBQUEsUUFDdEIsdUJBQUMsUUFBRyxxQkFBSjtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQVM7QUFBQSxXQUZYO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFHQTtBQUFBLE1BQ0EsdUJBQUMsWUFBTyxNQUFLLFVBQVMsY0FBVyxhQUFZLFNBQVNGLFFBQ3BEO0FBQUEsK0JBQUMsU0FBTSxlQUFZLFFBQU8sTUFBTSxNQUFoQztBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQW1DO0FBQUE7QUFBQSxXQURyQztBQUFBO0FBQUE7QUFBQTtBQUFBLGFBR0E7QUFBQSxTQVJGO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0FTQTtBQUFBLElBQ0EsdUJBQUMsU0FBSSxXQUFVLG1CQUFrQixjQUFXLFNBQ3pDQyxzQkFBWUU7QUFBQUEsTUFBSSxDQUFDQyxVQUNoQix1QkFBQyxhQUNDO0FBQUEsK0JBQUMsWUFBUUEsZ0JBQU1DLFNBQWY7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUFxQjtBQUFBLFFBQ3JCLHVCQUFDLFVBQU1ELGdCQUFNRSxTQUFiO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBbUI7QUFBQSxXQUZQRixNQUFNRyxJQUFwQjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBR0E7QUFBQSxJQUNELEtBTkg7QUFBQTtBQUFBO0FBQUE7QUFBQSxXQU9BO0FBQUEsSUFDQSx1QkFBQyxPQUFDLHVEQUFGO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0FFQTtBQUFBLE9BckJGO0FBQUE7QUFBQTtBQUFBO0FBQUEsU0FzQkE7QUFFSjtBQUFDQyxLQTVCZVQ7QUE4QlQsZ0JBQVNVLHVCQUF1QjtBQUNyQyxRQUFNQyxlQUFlZCxvQkFBb0JPLElBQUksQ0FBQ0MsVUFBVUEsTUFBTUMsS0FBSyxFQUFFTSxLQUFLLE1BQU07QUFFaEYsU0FDRSx1QkFBQyxTQUFJLFdBQVUsdUJBQ2I7QUFBQSwyQkFBQyxhQUFRLFdBQVUscUJBQ2pCO0FBQUEsNkJBQUMsVUFBSywyQ0FBTjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBQWlDO0FBQUEsTUFDakMsdUJBQUMsUUFBRyx1QkFBSjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBQVc7QUFBQSxNQUNYLHVCQUFDLE9BQUdELDBCQUFKO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFBaUI7QUFBQSxTQUhuQjtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBSUE7QUFBQSxJQUVBLHVCQUFDLGFBQVEsV0FBVSx1QkFBc0IsY0FBVyxRQUNqRGQsOEJBQW9CTztBQUFBQSxNQUFJLENBQUNDLE9BQU9RLFVBQy9CLHVCQUFDLGFBQ0M7QUFBQSwrQkFBQyxPQUFHQyxpQkFBT0QsUUFBUSxDQUFDLEVBQUVFLFNBQVMsR0FBRyxHQUFHLEtBQXJDO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBdUM7QUFBQSxRQUN2Qyx1QkFBQyxTQUNDO0FBQUEsaUNBQUMsVUFBTVYsZ0JBQU1XLFNBQWI7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBbUI7QUFBQSxVQUNuQix1QkFBQyxZQUFRWCxnQkFBTUMsU0FBZjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUFxQjtBQUFBLFVBQ3JCLHVCQUFDLE9BQUdEO0FBQUFBLGtCQUFNRTtBQUFBQSxZQUFNO0FBQUEsWUFBRUYsTUFBTVk7QUFBQUEsZUFBeEI7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBNkI7QUFBQSxVQUM3Qix1QkFBQyxRQUFJWixnQkFBTWEsZUFBWDtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUF1QjtBQUFBLGFBSnpCO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFLQTtBQUFBLFdBUFliLE1BQU1HLElBQXBCO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFRQTtBQUFBLElBQ0QsS0FYSDtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBWUE7QUFBQSxJQUVBLHVCQUFDLFNBQUksV0FBVSx3QkFDYjtBQUFBLDZCQUFDLGFBQVEsV0FBVSx3QkFDakI7QUFBQSwrQkFBQyxZQUNDO0FBQUEsaUNBQUMsZUFBWSxlQUFZLFFBQU8sTUFBTSxNQUF0QztBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUF5QztBQUFBLFVBQ3pDLHVCQUFDLFlBQU8sb0JBQVI7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBWTtBQUFBLGFBRmQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUdBO0FBQUEsUUFDQSx1QkFBQyxTQUFJLFdBQVUsb0JBQ1pULDBCQUFnQks7QUFBQUEsVUFBSSxDQUFDZSxTQUNwQix1QkFBQyxhQUNDO0FBQUEsbUNBQUMsVUFBTUEsZUFBS0MsU0FBWjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUFrQjtBQUFBLFlBQ2xCLHVCQUFDLFlBQVFELGVBQUtiLFNBQWQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFBb0I7QUFBQSxZQUNwQix1QkFBQyxPQUFHYSxlQUFLRSxXQUFUO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBQWlCO0FBQUEsWUFDakIsdUJBQUMsUUFBSUYsZUFBS0QsZUFBVjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUFzQjtBQUFBLGVBSlZDLEtBQUtYLElBQW5CO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBS0E7QUFBQSxRQUNELEtBUkg7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQVNBO0FBQUEsV0FkRjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBZUE7QUFBQSxNQUVBLHVCQUFDLGFBQVEsV0FBVSx3QkFDakI7QUFBQSwrQkFBQyxZQUNDO0FBQUEsaUNBQUMsZUFBWSxlQUFZLFFBQU8sTUFBTSxNQUF0QztBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUF5QztBQUFBLFVBQ3pDLHVCQUFDLFlBQU8scUJBQVI7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBYTtBQUFBLGFBRmY7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUdBO0FBQUEsUUFDQSx1QkFBQyxTQUFJLFdBQVUsbUJBQ1pWLDJCQUFpQk07QUFBQUEsVUFBSSxDQUFDa0IsU0FDckIsdUJBQUMsYUFDQztBQUFBLG1DQUFDLFlBQVFBLGVBQUtoQixTQUFkO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBQW9CO0FBQUEsWUFDcEIsdUJBQUMsT0FBR2dCLGVBQUtELFdBQVQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFBaUI7QUFBQSxZQUNqQix1QkFBQyxRQUFJQyxlQUFLQyxjQUFWO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBQXFCO0FBQUEsZUFIVEQsS0FBS2hCLE9BQW5CO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBSUE7QUFBQSxRQUNELEtBUEg7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQVFBO0FBQUEsV0FiRjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBY0E7QUFBQSxNQUVBLHVCQUFDLGFBQVEsV0FBVSx3QkFDakI7QUFBQSwrQkFBQyxZQUNDO0FBQUEsaUNBQUMsYUFBVSxlQUFZLFFBQU8sTUFBTSxNQUFwQztBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUF1QztBQUFBLFVBQ3ZDLHVCQUFDLFlBQU8scUJBQVI7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBYTtBQUFBLGFBRmY7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUdBO0FBQUEsUUFDQSx1QkFBQyxTQUFJLFdBQVUsb0JBQ1pWLDJCQUFpQlE7QUFBQUEsVUFBSSxDQUFDb0IsVUFDckIsdUJBQUMsYUFDQztBQUFBLG1DQUFDLFVBQU1BLGdCQUFNakIsU0FBYjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUFtQjtBQUFBLFlBQ25CLHVCQUFDLFlBQVFpQixnQkFBTUMsYUFBZjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUF5QjtBQUFBLFlBQ3pCLHVCQUFDLE9BQUdELGdCQUFNRSxVQUFWO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBQWlCO0FBQUEsZUFITEYsTUFBTWpCLE9BQXBCO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBSUE7QUFBQSxRQUNELEtBUEg7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQVFBO0FBQUEsV0FiRjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBY0E7QUFBQSxTQWhERjtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBaURBO0FBQUEsT0F0RUY7QUFBQTtBQUFBO0FBQUE7QUFBQSxTQXVFQTtBQUVKO0FBQUNvQixNQTdFZWpCO0FBQW9CLElBQUFELElBQUFrQjtBQUFBLGFBQUFsQixJQUFBO0FBQUEsYUFBQWtCLEtBQUEiLCJuYW1lcyI6WyJEYXRhYmFzZVphcCIsIkdpdEJyYW5jaCIsIlJvdXRlIiwiU2hpZWxkQ2hlY2siLCJpbmtvc01vZGVsUm91dGVzIiwiaW5rb3NQaXBlbGluZVN0YWdlcyIsImlua29zUmV2aWV3R2F0ZXMiLCJpbmtvc1RydXRoRmlsZXMiLCJJbmtPU1JlZmVyZW5jZVBhbmVsIiwib25PcGVuIiwiZmlyc3RTdGFnZXMiLCJzbGljZSIsIm1hcCIsInN0YWdlIiwibGFiZWwiLCJhZ2VudCIsImlkIiwiX2MiLCJJbmtPU1JlZmVyZW5jZVdpbmRvdyIsInBpcGVsaW5lVGV4dCIsImpvaW4iLCJpbmRleCIsIlN0cmluZyIsInBhZFN0YXJ0IiwicGhhc2UiLCJyb2xlIiwidG9rZW5Qb2xpY3kiLCJmaWxlIiwib3duZXIiLCJwdXJwb3NlIiwiZ2F0ZSIsInBhc3NTaWduYWwiLCJyb3V0ZSIsIm1vZGVsVGllciIsInJlYXNvbiIsIl9jMiJdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJJbmtPU1JlZmVyZW5jZVBhbmVsLnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBEYXRhYmFzZVphcCwgR2l0QnJhbmNoLCBSb3V0ZSwgU2hpZWxkQ2hlY2sgfSBmcm9tIFwibHVjaWRlLXJlYWN0XCI7XG5pbXBvcnQge1xuICBpbmtvc01vZGVsUm91dGVzLFxuICBpbmtvc1BpcGVsaW5lU3RhZ2VzLFxuICBpbmtvc1Jldmlld0dhdGVzLFxuICBpbmtvc1RydXRoRmlsZXMsXG59IGZyb20gXCIuLi9kYXRhL2lua29zSW5zcGlyZWRcIjtcblxuZXhwb3J0IGZ1bmN0aW9uIElua09TUmVmZXJlbmNlUGFuZWwoeyBvbk9wZW4gfTogeyBvbk9wZW46ICgpID0+IHZvaWQgfSkge1xuICBjb25zdCBmaXJzdFN0YWdlcyA9IGlua29zUGlwZWxpbmVTdGFnZXMuc2xpY2UoMCwgNCk7XG5cbiAgcmV0dXJuIChcbiAgICA8c2VjdGlvbiBjbGFzc05hbWU9XCJpbmtvcy1yZWZlcmVuY2UtcGFuZWxcIiBhcmlhLWxhYmVsPVwi5Yib5L2c5rWB5rC057q/XCI+XG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cImlua29zLXJlZmVyZW5jZS1oZWFkZXJcIj5cbiAgICAgICAgPGRpdj5cbiAgICAgICAgICA8c3Bhbj5XT1JLRkxPVyBDT05UUk9MPC9zcGFuPlxuICAgICAgICAgIDxoMz7liJvkvZzmtYHmsLTnur88L2gzPlxuICAgICAgICA8L2Rpdj5cbiAgICAgICAgPGJ1dHRvbiB0eXBlPVwiYnV0dG9uXCIgYXJpYS1sYWJlbD1cIuaJk+W8gOWIm+S9nOa1geawtOe6v+eql+WPo1wiIG9uQ2xpY2s9e29uT3Blbn0+XG4gICAgICAgICAgPFJvdXRlIGFyaWEtaGlkZGVuPVwidHJ1ZVwiIHNpemU9ezE1fSAvPlxuICAgICAgICAgIOaJk+W8gFxuICAgICAgICA8L2J1dHRvbj5cbiAgICAgIDwvZGl2PlxuICAgICAgPGRpdiBjbGFzc05hbWU9XCJpbmtvcy1taW5pLWZsb3dcIiBhcmlhLWxhYmVsPVwi5Y2B6Zi25q616aKE6KeIXCI+XG4gICAgICAgIHtmaXJzdFN0YWdlcy5tYXAoKHN0YWdlKSA9PiAoXG4gICAgICAgICAgPGFydGljbGUga2V5PXtzdGFnZS5pZH0+XG4gICAgICAgICAgICA8c3Ryb25nPntzdGFnZS5sYWJlbH08L3N0cm9uZz5cbiAgICAgICAgICAgIDxzcGFuPntzdGFnZS5hZ2VudH08L3NwYW4+XG4gICAgICAgICAgPC9hcnRpY2xlPlxuICAgICAgICApKX1cbiAgICAgIDwvZGl2PlxuICAgICAgPHA+XG4gICAgICAgIOaKiuKAnOWGmeato+aWh+KAneWSjOKAnOe7k+eul+eKtuaAgeKAneaLhuW8gO+8m+m7mOiupOWPquWBmuWPr+inhuWMluWSjOe7k+aehOaPkOekuu+8jOS4jeiHquWKqOinpuWPkSBBUEnjgIJcbiAgICAgIDwvcD5cbiAgICA8L3NlY3Rpb24+XG4gICk7XG59XG5cbmV4cG9ydCBmdW5jdGlvbiBJbmtPU1JlZmVyZW5jZVdpbmRvdygpIHtcbiAgY29uc3QgcGlwZWxpbmVUZXh0ID0gaW5rb3NQaXBlbGluZVN0YWdlcy5tYXAoKHN0YWdlKSA9PiBzdGFnZS5sYWJlbCkuam9pbihcIiAtPiBcIik7XG5cbiAgcmV0dXJuIChcbiAgICA8ZGl2IGNsYXNzTmFtZT1cImlua29zLXdpbmRvdy1sYXlvdXRcIj5cbiAgICAgIDxzZWN0aW9uIGNsYXNzTmFtZT1cImlua29zLXdpbmRvdy1oZXJvXCI+XG4gICAgICAgIDxzcGFuPkFHRU5UIFBJUEVMSU5FIC8gVE9LRU4gU0FGRTwvc3Bhbj5cbiAgICAgICAgPGgzPuWNgemYtuauteWGmeS9nOeuoee6vzwvaDM+XG4gICAgICAgIDxwPntwaXBlbGluZVRleHR9PC9wPlxuICAgICAgPC9zZWN0aW9uPlxuXG4gICAgICA8c2VjdGlvbiBjbGFzc05hbWU9XCJpbmtvcy1waXBlbGluZS1sYW5lXCIgYXJpYS1sYWJlbD1cIuWIm+S9nOeuoee6v1wiPlxuICAgICAgICB7aW5rb3NQaXBlbGluZVN0YWdlcy5tYXAoKHN0YWdlLCBpbmRleCkgPT4gKFxuICAgICAgICAgIDxhcnRpY2xlIGtleT17c3RhZ2UuaWR9PlxuICAgICAgICAgICAgPGk+e1N0cmluZyhpbmRleCArIDEpLnBhZFN0YXJ0KDIsIFwiMFwiKX08L2k+XG4gICAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgICA8c3Bhbj57c3RhZ2UucGhhc2V9PC9zcGFuPlxuICAgICAgICAgICAgICA8c3Ryb25nPntzdGFnZS5sYWJlbH08L3N0cm9uZz5cbiAgICAgICAgICAgICAgPHA+e3N0YWdlLmFnZW50fe+8mntzdGFnZS5yb2xlfTwvcD5cbiAgICAgICAgICAgICAgPGVtPntzdGFnZS50b2tlblBvbGljeX08L2VtPlxuICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgPC9hcnRpY2xlPlxuICAgICAgICApKX1cbiAgICAgIDwvc2VjdGlvbj5cblxuICAgICAgPGRpdiBjbGFzc05hbWU9XCJpbmtvcy13aW5kb3ctY29sdW1uc1wiPlxuICAgICAgICA8c2VjdGlvbiBjbGFzc05hbWU9XCJpbmtvcy1yZWZlcmVuY2UtY2FyZFwiPlxuICAgICAgICAgIDxoZWFkZXI+XG4gICAgICAgICAgICA8RGF0YWJhc2VaYXAgYXJpYS1oaWRkZW49XCJ0cnVlXCIgc2l6ZT17MTd9IC8+XG4gICAgICAgICAgICA8c3Ryb25nPuecn+ebuOaWh+S7tjwvc3Ryb25nPlxuICAgICAgICAgIDwvaGVhZGVyPlxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiaW5rb3MtdHJ1dGgtZ3JpZFwiPlxuICAgICAgICAgICAge2lua29zVHJ1dGhGaWxlcy5tYXAoKGZpbGUpID0+IChcbiAgICAgICAgICAgICAgPGFydGljbGUga2V5PXtmaWxlLmlkfT5cbiAgICAgICAgICAgICAgICA8c3Bhbj57ZmlsZS5vd25lcn08L3NwYW4+XG4gICAgICAgICAgICAgICAgPHN0cm9uZz57ZmlsZS5sYWJlbH08L3N0cm9uZz5cbiAgICAgICAgICAgICAgICA8cD57ZmlsZS5wdXJwb3NlfTwvcD5cbiAgICAgICAgICAgICAgICA8ZW0+e2ZpbGUudG9rZW5Qb2xpY3l9PC9lbT5cbiAgICAgICAgICAgICAgPC9hcnRpY2xlPlxuICAgICAgICAgICAgKSl9XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgIDwvc2VjdGlvbj5cblxuICAgICAgICA8c2VjdGlvbiBjbGFzc05hbWU9XCJpbmtvcy1yZWZlcmVuY2UtY2FyZFwiPlxuICAgICAgICAgIDxoZWFkZXI+XG4gICAgICAgICAgICA8U2hpZWxkQ2hlY2sgYXJpYS1oaWRkZW49XCJ0cnVlXCIgc2l6ZT17MTd9IC8+XG4gICAgICAgICAgICA8c3Ryb25nPuS6uuW3peWuoeaguOmXqDwvc3Ryb25nPlxuICAgICAgICAgIDwvaGVhZGVyPlxuICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiaW5rb3MtZ2F0ZS1saXN0XCI+XG4gICAgICAgICAgICB7aW5rb3NSZXZpZXdHYXRlcy5tYXAoKGdhdGUpID0+IChcbiAgICAgICAgICAgICAgPGFydGljbGUga2V5PXtnYXRlLmxhYmVsfT5cbiAgICAgICAgICAgICAgICA8c3Ryb25nPntnYXRlLmxhYmVsfTwvc3Ryb25nPlxuICAgICAgICAgICAgICAgIDxwPntnYXRlLnB1cnBvc2V9PC9wPlxuICAgICAgICAgICAgICAgIDxlbT57Z2F0ZS5wYXNzU2lnbmFsfTwvZW0+XG4gICAgICAgICAgICAgIDwvYXJ0aWNsZT5cbiAgICAgICAgICAgICkpfVxuICAgICAgICAgIDwvZGl2PlxuICAgICAgICA8L3NlY3Rpb24+XG5cbiAgICAgICAgPHNlY3Rpb24gY2xhc3NOYW1lPVwiaW5rb3MtcmVmZXJlbmNlLWNhcmRcIj5cbiAgICAgICAgICA8aGVhZGVyPlxuICAgICAgICAgICAgPEdpdEJyYW5jaCBhcmlhLWhpZGRlbj1cInRydWVcIiBzaXplPXsxN30gLz5cbiAgICAgICAgICAgIDxzdHJvbmc+5aSa5qih5Z6L6Lev55SxPC9zdHJvbmc+XG4gICAgICAgICAgPC9oZWFkZXI+XG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJpbmtvcy1yb3V0ZS1saXN0XCI+XG4gICAgICAgICAgICB7aW5rb3NNb2RlbFJvdXRlcy5tYXAoKHJvdXRlKSA9PiAoXG4gICAgICAgICAgICAgIDxhcnRpY2xlIGtleT17cm91dGUuYWdlbnR9PlxuICAgICAgICAgICAgICAgIDxzcGFuPntyb3V0ZS5hZ2VudH08L3NwYW4+XG4gICAgICAgICAgICAgICAgPHN0cm9uZz57cm91dGUubW9kZWxUaWVyfTwvc3Ryb25nPlxuICAgICAgICAgICAgICAgIDxwPntyb3V0ZS5yZWFzb259PC9wPlxuICAgICAgICAgICAgICA8L2FydGljbGU+XG4gICAgICAgICAgICApKX1cbiAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgPC9zZWN0aW9uPlxuICAgICAgPC9kaXY+XG4gICAgPC9kaXY+XG4gICk7XG59XG4iXSwiZmlsZSI6IkQ6L09ILVdvcmtTcGFjZS9ub3ZlbC1wcm9tcHQtZ3VpZGUvd2ViL3NyYy9jb21wb25lbnRzL0lua09TUmVmZXJlbmNlUGFuZWwudHN4In0=

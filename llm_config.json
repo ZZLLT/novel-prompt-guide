@@ -1,0 +1,14 @@
+{
+  "endpoint": "https://api.deepseek.com",
+  "model": "deepseek-v4-flash",
+  "model_routes": {
+    "planner": "deepseek-v4-flash",
+    "writer": "deepseek-v4-flash",
+    "reviewer": "deepseek-v4-flash",
+    "assistant": "deepseek-v4-flash"
+  },
+  "temperature": 0.3,
+  "max_tokens": 4096,
+  "api_enabled": true,
+  "api_key": "sk-7996af5759da41ed91096b2a4bb619da"
+}

@@ -1,0 +1,136 @@
+[
+  {
+    "name": "status/wps/llm",
+    "ok": true,
+    "elapsed": 0.36,
+    "detail": {
+      "error": null,
+      "connected": true,
+      "llm": true,
+      "document": "wps_e2e_盐雾灯塔档案.docx"
+    }
+  },
+  {
+    "name": "llm config hidden key",
+    "ok": true,
+    "elapsed": 0.0,
+    "detail": {
+      "error": null,
+      "endpoint": "https://api.deepseek.com",
+      "model": "deepseek-v4-flash",
+      "api_enabled": true,
+      "has_api_key_field": false
+    }
+  },
+  {
+    "name": "llm models fetch",
+    "ok": true,
+    "elapsed": 7.45,
+    "detail": {
+      "error": null,
+      "count": 2,
+      "sample": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ]
+    }
+  },
+  {
+    "name": "document state",
+    "ok": true,
+    "elapsed": 3.1,
+    "detail": {
+      "error": null,
+      "next_action": null
+    }
+  },
+  {
+    "name": "prompt policy",
+    "ok": true,
+    "elapsed": 0.01,
+    "detail": {
+      "error": null,
+      "stage": "chapters",
+      "chat_budget": 900
+    }
+  },
+  {
+    "name": "sections read",
+    "ok": true,
+    "elapsed": 3.06,
+    "detail": {
+      "error": null,
+      "keys": [
+        "cover",
+        "worldbuilding",
+        "characters",
+        "plot",
+        "chapters"
+      ],
+      "chars": 2260
+    }
+  },
+  {
+    "name": "doc read section",
+    "ok": true,
+    "elapsed": 0.63,
+    "detail": {
+      "error": null,
+      "chars": 452
+    }
+  },
+  {
+    "name": "stage generate queue",
+    "ok": true,
+    "elapsed": 1.25,
+    "detail": {
+      "error": null,
+      "status": "queued",
+      "mode": "fast",
+      "guard": null,
+      "msg_id": "39794404"
+    }
+  },
+  {
+    "name": "ai assistant chat",
+    "ok": true,
+    "elapsed": 8.25,
+    "detail": {
+      "error": null,
+      "mode": "llm",
+      "model": "deepseek-v4-flash",
+      "chars": 81,
+      "preview": "判断 / 当前场景已完整展开历史回放，但缺乏即时威胁驱动。  \n建议 / 加入外部威胁：海岸巡逻队接近。  \n可执行下一步 / 林砚听到无线电，有人正在靠近灯塔"
+    }
+  },
+  {
+    "name": "wps write api",
+    "ok": true,
+    "elapsed": 0.43,
+    "detail": {
+      "error": null,
+      "payload": {
+        "success": true
+      }
+    }
+  },
+  {
+    "name": "wps readback marker",
+    "ok": true,
+    "elapsed": 1.31,
+    "detail": {
+      "read_chars": 490,
+      "has_marker": true
+    }
+  },
+  {
+    "name": "wps save as docx",
+    "ok": true,
+    "elapsed": 0.22,
+    "detail": {
+      "path": "D:\\OH-WorkSpace\\novel-prompt-guide\\output\\smoke_wps_saved.docx",
+      "size": 11214,
+      "raw": "{\"saved\": true, \"name\": \"smoke_wps_saved.docx\", \"success\": true}"
+    }
+  }
+]

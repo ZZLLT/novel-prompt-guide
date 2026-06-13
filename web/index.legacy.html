@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>网文AI写作系统</title>
+<style>
+:root{
+  --bg:#0a0a0f; --s1:#12121a; --s2:#1a1a24; --s3:#222230;
+  --b1:#2a2a38; --b2:#333348;
+  --t1:#e8e8f0; --t2:#9898b0; --t3:#585870;
+  --blue:#5b9cf5; --blue2:#1a2a45; --gold:#c9a84c; --gold2:#2a2010;
+  --green:#4caf7c; --red:#e0556a;
+  --r:6px; --f:"Inter",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--f);background:var(--bg);color:var(--t1);height:100vh;overflow:hidden;font-size:13px;line-height:1.55}
+.app{display:grid;grid-template-columns:260px 1fr 360px;height:100vh}
+.panel{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+.panel.right{border-right:none;border-left:1px solid var(--b1)}
+.panel-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--b1);min-height:42px;flex-shrink:0}
+.panel-header h2{font-size:13px;font-weight:600;letter-spacing:-0.2px}
+.scroll{flex:1;overflow-y:auto;padding:8px 0}
+.scroll::-webkit-scrollbar{width:4px}
+.scroll::-webkit-scrollbar-track{background:transparent}
+.scroll::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--t2);padding:3px 8px;border-radius:10px;background:var(--s2)}
+.status .dot{width:6px;height:6px;border-radius:50%}
+.status .dot.on{background:var(--green);box-shadow:0 0 6px var(--green)}
+.status .dot.off{background:var(--red)}
+.nav-group{padding:6px 10px}
+.nav-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--t3);padding:8px 6px 4px;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--r);cursor:pointer;font-size:12px;color:var(--t2);transition:all .12s;margin:1px 0}
+.nav-item:hover{background:var(--s2);color:var(--t1)}
+.nav-item.active{background:var(--blue2);color:var(--blue)}
+.nav-item .indicator{width:3px;height:3px;border-radius:50%;background:var(--t3);flex-shrink:0}
+.nav-item.active .indicator{background:var(--blue)}
+.state-card{margin:4px 10px;padding:10px 12px;background:var(--s2);border-radius:var(--r);border:1px solid var(--b1);font-size:11px}
+.state-card .sc-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.state-card .sc-status{display:flex;align-items:center;gap:6px;margin:3px 0}
+.state-card .sc-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.state-card .sc-dot.filled{background:var(--green)}
+.state-card .sc-dot.empty{background:var(--t3)}
+.state-card .sc-prompt{margin-top:8px;color:var(--t2);line-height:1.5;font-size:11px}
+.sug-bar{padding:4px 10px}
+.sug-item{padding:6px 8px;border-radius:4px;font-size:11px;color:var(--t2);cursor:pointer;border-left:2px solid var(--b1);margin:3px 0;transition:all .12s}
+.sug-item:hover{background:var(--s2)}
+.sug-item.urgent{border-left-color:var(--red)}
+.sug-item.normal{border-left-color:var(--blue)}
+.main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.main-top{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.main-top h1{font-size:15px;font-weight:600;letter-spacing:-0.3px}
+.main-body{flex:1;overflow-y:auto;padding:16px 18px}
+.main-body::-webkit-scrollbar{width:4px}
+.main-body::-webkit-scrollbar-track{background:transparent}
+.main-body::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px}
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:16px;margin-bottom:14px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.card-header h3{font-size:13px;font-weight:600}
+.card-desc{font-size:11px;color:var(--t3);margin-bottom:10px}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:11px;color:var(--t3);margin-bottom:3px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field textarea{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:7px 10px;color:var(--t1);font-size:12px;font-family:var(--f);resize:vertical;transition:border-color .15s}
+.field textarea{min-height:70px}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--blue)}
+.field .hint{font-size:10px;color:var(--t3);margin-top:2px}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--f);transition:all .12s;letter-spacing:-0.1px}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:#4a8de6}
+.btn-secondary{background:var(--s2);border:1px solid var(--b1);color:var(--t2)}.btn-secondary:hover{background:var(--s3);color:var(--t1)}
+.btn-gold{background:var(--gold2);color:var(--gold)}.btn-gold:hover{background:rgba(201,168,76,.15)}
+.btn-group{display:flex;gap:6px;flex-wrap:wrap}
+.chat-messages{flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:8px}
+.chat-messages::-webkit-scrollbar{width:4px}
+.chat-messages::-webkit-scrollbar-track{background:transparent}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px}
+.chat-msg{max-width:92%;padding:8px 10px;border-radius:var(--r);font-size:12px;line-height:1.55}
+.chat-msg.user{align-self:flex-end;background:var(--blue2);color:var(--t1);border-bottom-right-radius:2px}
+.chat-msg.agent{align-self:flex-start;background:var(--s2);color:var(--t2);border-bottom-left-radius:2px}
+.chat-msg .msg-meta{font-size:10px;color:var(--t3);margin-bottom:3px}
+.chat-msg.thinking{align-self:flex-start;background:transparent;color:var(--t3);font-style:italic;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+.chat-input-area{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--b1);flex-shrink:0}
+.chat-input-area textarea{flex:1;background:var(--s2);border:1px solid var(--b1);border-radius:4px;padding:7px 10px;color:var(--t1);font-size:12px;font-family:var(--f);resize:none;min-height:38px;max-height:80px}
+.chat-input-area textarea:focus{outline:none;border-color:var(--blue)}
+.chat-input-area button{flex-shrink:0;align-self:flex-end}
+.chips{display:flex;gap:4px;flex-wrap:wrap;padding:4px 12px}
+.chip{padding:3px 8px;border-radius:10px;font-size:10px;background:var(--s2);border:1px solid var(--b1);color:var(--t3);cursor:pointer;transition:all .12s}
+.chip:hover{border-color:var(--blue);color:var(--blue)}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);padding:8px 16px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);font-size:12px;z-index:99;animation:slideUp .25s}
+@keyframes slideUp{from{transform:translate(-50%,10px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="panel">
+  <div class="panel-header"><h2>写作系统</h2><span class="status"><span class="dot" id="statusDot"></span><span id="statusLabel">...</span></span></div>
+  <div class="scroll">
+    <div class="nav-group"><div class="nav-label">写作阶段</div></div>
+    <div id="stageNav"></div>
+    <div class="state-card" id="stateCard"><div class="sc-label">当前状态</div><div id="stateContent"><span style="color:var(--t3)">分析中...</span></div></div>
+    <div class="nav-group"><div class="nav-label">建议操作</div></div>
+    <div class="sug-bar" id="suggestions"></div>
+    <div style="padding:8px 10px"><button class="btn btn-secondary" onclick="refreshState()" style="width:100%">刷新分析</button></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="main-top"><h1 id="mainTitle">世界观构建</h1><div class="btn-group" id="mainActions"></div></div>
+  <div class="main-body" id="mainContent"></div>
+</div>
+
+<div class="panel right">
+  <div class="panel-header"><h2>AI 助手</h2></div>
+  <div class="chips" id="quickChips"></div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-msg agent"><div class="msg-meta">助手</div>你好。在WPS中填写设定，或直接在表单中编辑。我会分析你的进度并给出建议。随时向我提问。</div>
+  </div>
+  <div class="chat-input-area">
+    <textarea id="chatInput" placeholder="输入消息，如：帮我设计主角的金手指..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"></textarea>
+    <button class="btn btn-primary" onclick="sendMessage()">发送</button>
+  </div>
+</div>
+</div>
+
+<script>
+const API='/api';let currentStage='worldbuilding',pollTimers={},formData={};
+const STAGES={
+  cover:{id:'cover',label:'封面信息',fields:{
+    title:{label:'作品名称',hint:'你的小说叫什么'},
+    genre:{label:'小说类型',hint:'玄幻/都市/科幻/历史/悬疑/言情/无限流...'},
+    style:{label:'写作风格',hint:'爽文快节奏/慢热铺陈/张弛有度/偏文艺/硬核设定'},
+    concept:{label:'核心创意',hint:'一句话说出故事最吸引人的点'}
+  }},
+  worldbuilding:{id:'worldbuilding',label:'世界观构建',fields:{
+    world_type:{label:'世界类型',hint:'现代都市+异能？末日废土？架空王朝？未来星际？'},
+    era:{label:'时代背景',hint:'2030年，灵气复苏第三年'},
+    scale:{label:'世界规模',hint:'一座城市？一片大陆？多个位面？'},
+    conflict:{label:'核心冲突',hint:'这个世界面临的根本矛盾是什么？'},
+    power_source:{label:'力量来源',hint:'力量从何而来？灵气/基因/科技/系统？'},
+    rules:{label:'独特规则',hint:'1-2条让这个世界与众不同的规则'}
+  }},
+  characters:{id:'characters',label:'人物设计',fields:{
+    name:{label:'主角姓名',hint:'要有含义'},
+    profile:{label:'基本信息',hint:'年龄、性别、外貌标志特征'},
+    background:{label:'身份背景',hint:'出身 + 3个成长关键事件'},
+    personality:{label:'性格特质',hint:'核心性格、优点、缺陷、习惯、口头禅'},
+    ability:{label:'金手指设计',hint:'能力名称、来源、机制、限制、代价、成长路径'},
+    arc:{label:'成长弧线',hint:'开篇状态 → 中期转变 → 结局形态'}
+  }},
+  plot:{id:'plot',label:'剧情大纲',fields:{
+    oneliner:{label:'一句话概括',hint:'这是一个关于___的故事，主角___，最终___。'},
+    act1:{label:'第一幕（开篇）',hint:'初始状态 + 触发事件 + 第一转折点'},
+    act2:{label:'第二幕（对抗）',hint:'核心挑战 + 中点转折 + 最低谷'},
+    act3:{label:'第三幕（结局）',hint:'最终对决 + 高潮 + 结局'},
+    twists:{label:'关键转折点',hint:'5个剧情转折：位置/内容/为什么意外又合理'},
+    volume1:{label:'第一卷规划',hint:'卷名、核心目标、5-7个关键事件、卷末钩子'}
+  }},
+  chapters:{id:'chapters',label:'章节写作',fields:{
+    ch_title:{label:'章节标题',hint:''},
+    ch_goal:{label:'本章目标',hint:'这一章要实现什么？'},
+    highlights:{label:'核心看点',hint:'本章最精彩/最重要的部分'},
+    characters:{label:'出场角色',hint:'本章登场的角色'},
+    hook:{label:'章末钩子',hint:'结尾如何让读者想看下一章？'},
+    content:{label:'正文内容',hint:'在此书写或粘贴章节正文（2000-4000字）'}
+  }}
+};
+
+async function init(){
+  await checkStatus();renderNav();switchStage('worldbuilding');refreshState();
+  setInterval(checkStatus,15000);setInterval(pollChat,3000);
+}
+async function checkStatus(){
+  try{
+    const r=await fetch(API+'/status');const d=await r.json();
+    const dot=document.getElementById('statusDot'),label=document.getElementById('statusLabel');
+    dot.className='dot '+(d.connected?'on':'off');
+    label.textContent=(d.connected?'WPS 已连接':'WPS 未连接')+(d.llm?' · LLM':'');
+    if(d.llm) label.style.color='var(--green)';
+  }catch(e){}
+}
+function renderNav(){
+  const order=['cover','worldbuilding','characters','plot','chapters'];
+  let h='';
+  for(const id of order){const s=STAGES[id];h+=`<div class="nav-item" data-stage="${id}" onclick="switchStage('${id}')"><span class="indicator"></span>${s.label}</div>`}
+  document.getElementById('stageNav').innerHTML=h;
+}
+function switchStage(id){
+  currentStage=id;
+  document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
+  document.querySelector(`[data-stage="${id}"]`)?.classList.add('active');
+  document.getElementById('mainTitle').textContent=STAGES[id].label;
+  renderForm(STAGES[id]);renderChips(id);
+}
+function renderForm(stage){
+  let h='<div class="card"><div class="card-header"><h3>'+stage.label+' 编辑区</h3></div>';
+  h+='<div class="card-desc">在下方填写内容，点击「写入WPS」将内容同步到WPS文档。也可在WPS中直接编辑后点击「从WPS读取」。</div>';
+  for(const [key,f] of Object.entries(stage.fields)){
+    const val=formData[key]||'';
+    h+=`<div class="field"><label>${f.label}</label>`;
+    if(['content','background','personality','ability','arc','conflict','rules','oneliner','act1','act2','act3','twists','volume1','highlights','hook'].includes(key)){
+      h+=`<textarea id="f_${key}" placeholder="${f.hint||''}" oninput="formData['${key}']=this.value">${esc(val)}</textarea>`;
+    }else{
+      h+=`<input id="f_${key}" type="text" placeholder="${f.hint||''}" value="${esc(val)}" oninput="formData['${key}']=this.value">`;
+    }
+    h+=`${f.hint?`<div class="hint">${f.hint}</div>`:''}</div>`;
+  }
+  h+=`<div class="btn-group" style="margin-top:8px">
+    <button class="btn btn-primary" onclick="syncToWPS()">写入 WPS</button>
+    <button class="btn btn-secondary" onclick="autoGenerate()">自动生成提示词</button>
+    <button class="btn btn-gold" onclick="readFromWPS()">从 WPS 读取</button>
+  </div></div>`;
+  document.getElementById('mainContent').innerHTML=h;
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+async function syncToWPS(){
+  const stage=STAGES[currentStage];let text=`=== ${stage.label} ===\n`;
+  for(const [key,f] of Object.entries(stage.fields)){const val=formData[key]||'';if(val.trim())text+=`${f.label}：${val}\n`}
+  if(text.trim()===`=== ${stage.label} ===\n`){toast('没有需要同步的内容');return}
+  try{await fetch(API+'/write',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});toast('已写入WPS');setTimeout(refreshState,500)}catch(e){toast('同步失败')}
+}
+async function readFromWPS(){
+  try{const r=await fetch(API+'/doc/read?section='+currentStage);const d=await r.json();if(d.text)toast('读取到'+d.text.length+'字');else toast('WPS中此阶段暂无内容')}catch(e){toast('读取失败')}
+}
+async function refreshState(){
+  try{const r=await fetch(API+'/state');const d=await r.json();renderState(d);renderSuggestions(d)}catch(e){}
+}
+function renderState(d){
+  const sections=d.sections||{};let h='';
+  for(const [id,s] of Object.entries(sections)){h+=`<div class="sc-status"><span class="sc-dot ${s.has_content?'filled':'empty'}"></span>${STAGES[id]?.label||id}</div>`}
+  if(d.prompt)h+=`<div class="sc-prompt">${d.prompt.substring(0,200)}...</div>`;
+  document.getElementById('stateContent').innerHTML=h||'<span style="color:var(--t3)">无数据</span>';
+}
+function renderSuggestions(d){
+  const sections=d.sections||{};let h='';
+  if(!sections.cover?.has_content)h+='<div class="sug-item urgent" onclick="switchStage(\'cover\')">填写封面信息</div>';
+  if(!sections.worldbuilding?.has_content)h+='<div class="sug-item urgent" onclick="switchStage(\'worldbuilding\')">定义世界观规则</div>';
+  else if(!sections.characters?.has_content)h+='<div class="sug-item normal" onclick="switchStage(\'characters\')">设计主角</div>';
+  else if(!sections.plot?.has_content)h+='<div class="sug-item normal" onclick="switchStage(\'plot\')">规划剧情结构</div>';
+  else if(!sections.chapters?.has_content)h+='<div class="sug-item normal" onclick="switchStage(\'chapters\')">开始写第一章</div>';
+  document.getElementById('suggestions').innerHTML=h||'';
+}
+async function autoGenerate(){
+  try{const r=await fetch(API+'/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({stage:currentStage})});const d=await r.json();if(d.prompt){addChatMessage('agent','已根据当前进度自动生成提示词：\n\n'+d.prompt.substring(0,600)+'...');toast('提示词已发送到AI')}}catch(e){toast('生成失败')}
+}
+let lastMsgId=null;
+async function sendMessage(){
+  const inp=document.getElementById('chatInput'),msg=inp.value.trim();if(!msg)return;inp.value='';
+  addChatMessage('user',msg);addChatMessage('thinking','处理中...');
+  try{
+    const r=await fetch(API+'/chat/send',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:msg,stage:currentStage})});
+    const d=await r.json();
+    removeThinking();
+    if(d.response){
+      addChatMessage('agent',d.response);
+    }else if(d.msg_id){
+      lastMsgId=d.msg_id;
+      addChatMessage('agent','消息已发送，AI正在处理...');
+      pollChat();
+    }
+  }catch(e){removeThinking();addChatMessage('agent','发送失败，请重试。')}
+}
+async function pollChat(){
+  if(!lastMsgId)return;
+  try{const r=await fetch(API+'/chat/poll?msg_id='+lastMsgId);const d=await r.json();if(d.response){const msgs=document.getElementById('chatMessages'),last=msgs.lastElementChild;if(last&&last.classList.contains('agent')&&last.textContent.includes('正在处理'))last.innerHTML='<div class="msg-meta">助手</div>'+esc(d.response.response||'')}}catch(e){}
+}
+function addChatMessage(type,text){
+  const msgs=document.getElementById('chatMessages'),div=document.createElement('div');div.className='chat-msg '+type;
+  if(type==='agent')div.innerHTML='<div class="msg-meta">助手</div>'+esc(text);
+  else if(type==='thinking')div.innerHTML='<span>'+text+'</span>';
+  else div.innerHTML='<div class="msg-meta">你</div>'+esc(text);
+  msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
+}
+function removeThinking(){const msgs=document.getElementById('chatMessages'),last=msgs.lastElementChild;if(last&&last.classList.contains('thinking'))last.remove()}
+function renderChips(stage){
+  const chips={
+    worldbuilding:['分析世界类型','设计力量体系','构建势力版图','生成完整世界观'],
+    characters:['设计主角档案','设计反派角色','设计配角阵容','生成人物设定集'],
+    plot:['展开三幕结构','规划分卷内容','设计爽点钩子','生成完整大纲'],
+    chapters:['写第一章正文','续写下一章','写战斗场景','写日常章节','批量生成大纲'],
+  };
+  const items=chips[stage]||[];let h='';
+  for(const c of items)h+=`<span class="chip" onclick="document.getElementById('chatInput').value='${c}';sendMessage()">${c}</span>`;
+  document.getElementById('quickChips').innerHTML=h;
+}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2000)}
+init();
+</script>
+</body>
+</html>

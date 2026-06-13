@@ -1,0 +1,1741 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/StoryFlowMap.tsx");import __vite__cjsImport0_react_jsxDevRuntime from "/@fs/D:/OH-WorkSpace/novel-prompt-guide/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=a23026a1"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+var _s = $RefreshSig$();
+import __vite__cjsImport1_react from "/@fs/D:/OH-WorkSpace/novel-prompt-guide/node_modules/.vite/deps/react.js?v=a23026a1"; const useRef = __vite__cjsImport1_react["useRef"]; const useState = __vite__cjsImport1_react["useState"];
+import { Move, Network, RotateCcw, SendHorizontal, X, ZoomIn, ZoomOut } from "/@fs/D:/OH-WorkSpace/novel-prompt-guide/node_modules/.vite/deps/lucide-react.js?v=945989d9";
+import { sendChat } from "/src/api/client.ts?t=1780744627376";
+import {
+  flowSignals,
+  flowStages,
+  relationshipEdges,
+  relationshipTimeline,
+  sceneCards,
+  storyActors
+} from "/src/data/storyFlow.ts?t=1780749372926";
+const MIN_ZOOM = 0.7;
+const MAX_ZOOM = 1.8;
+const ZOOM_STEP = 0.2;
+const DEFAULT_RELATION_EDGE_ID = relationshipEdges[0]?.id ?? "";
+const suggestionPositions = {
+  "hero-heroine": { left: "41%", top: "42%" },
+  "hero-rival": { left: "51%", top: "58%" },
+  "mentor-hero": { left: "18%", top: "50%" }
+};
+const storyWindowTitles = {
+  scenes: "场景卡片窗口",
+  timeline: "关系时间线窗口"
+};
+const storyWindowOffsets = {
+  scenes: { x: 0, y: 0 },
+  timeline: { x: 42, y: 34 }
+};
+const storyWindowDefaultSize = { width: 980, height: 520 };
+const storyWindowMinSize = { width: 540, height: 360 };
+const storyWindowMaxSize = { width: 1240, height: 820 };
+const relationshipWindowDefaultSize = { width: 1120, height: 720 };
+const relationshipWindowMinSize = { width: 760, height: 520 };
+const relationshipWindowMaxSize = { width: 1320, height: 840 };
+function clampWindowSize(size, minSize, maxSize) {
+  return {
+    width: Math.min(maxSize.width, Math.max(minSize.width, size.width)),
+    height: Math.min(maxSize.height, Math.max(minSize.height, size.height))
+  };
+}
+function createStoryWindow(kind, z) {
+  return {
+    kind,
+    x: storyWindowOffsets[kind].x,
+    y: storyWindowOffsets[kind].y,
+    width: storyWindowDefaultSize.width,
+    height: storyWindowDefaultSize.height,
+    z,
+    draft: "",
+    sendStatus: "idle"
+  };
+}
+const suggestionStatusLabels = {
+  sending: "提交中",
+  queued: "已入队",
+  sent: "已回复",
+  error: "失败"
+};
+function createSuggestionId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `suggestion-${Date.now()}`;
+}
+function getInitialStoryWindow() {
+  const storyWindow = new URLSearchParams(window.location.search).get("storyWindow");
+  if (storyWindow === "scenes" || storyWindow === "timeline") {
+    return storyWindow;
+  }
+  return null;
+}
+async function defaultSendPlotInstruction(message) {
+  return sendChat(message, "plot");
+}
+function getInstructionResponse(result) {
+  if (!result || typeof result !== "object" || !("response" in result)) return void 0;
+  const response = result.response;
+  return typeof response === "string" ? response : void 0;
+}
+export function StoryFlowMap({ onSendPlotInstruction = defaultSendPlotInstruction } = {}) {
+  _s();
+  const [isRelationshipWindowOpen, setRelationshipWindowOpen] = useState(
+    () => new URLSearchParams(window.location.search).get("relations") === "open"
+  );
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [relationshipWindowPosition, setRelationshipWindowPosition] = useState({ x: 0, y: 0 });
+  const [relationshipWindowSize, setRelationshipWindowSize] = useState(relationshipWindowDefaultSize);
+  const [activeEdgeId, setActiveEdgeId] = useState(DEFAULT_RELATION_EDGE_ID);
+  const [storyWindows, setStoryWindows] = useState(() => {
+    const initialWindow = getInitialStoryWindow();
+    return initialWindow ? [createStoryWindow(initialWindow, 1)] : [];
+  });
+  const [suggestionText, setSuggestionText] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const dragState = useRef(null);
+  const relationshipWindowDragState = useRef(null);
+  const relationshipWindowResizeState = useRef(null);
+  const storyDragState = useRef(null);
+  const storyResizeState = useRef(null);
+  const suggestionSendingRef = useRef(false);
+  const storyNextZRef = useRef(2);
+  const zoomIn = () => setZoom((value) => Math.min(MAX_ZOOM, Number((value + ZOOM_STEP).toFixed(1))));
+  const zoomOut = () => setZoom((value) => Math.max(MIN_ZOOM, Number((value - ZOOM_STEP).toFixed(1))));
+  const isSuggestionSending = suggestions.some((suggestion) => suggestion.status === "sending");
+  const resetView = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+  const startPan = (event) => {
+    if (event.button !== 0) return;
+    dragState.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      panX: pan.x,
+      panY: pan.y
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const movePan = (event) => {
+    const drag = dragState.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    setPan({
+      x: drag.panX + event.clientX - drag.startX,
+      y: drag.panY + event.clientY - drag.startY
+    });
+  };
+  const stopPan = (event) => {
+    if (!dragState.current || dragState.current.pointerId !== event.pointerId) return;
+    dragState.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  };
+  const startRelationshipWindowDrag = (event) => {
+    if (event.button !== 0) return;
+    relationshipWindowDragState.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      panX: relationshipWindowPosition.x,
+      panY: relationshipWindowPosition.y
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const moveRelationshipWindow = (event) => {
+    const drag = relationshipWindowDragState.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    setRelationshipWindowPosition({
+      x: drag.panX + event.clientX - drag.startX,
+      y: drag.panY + event.clientY - drag.startY
+    });
+  };
+  const stopRelationshipWindowDrag = (event) => {
+    if (!relationshipWindowDragState.current || relationshipWindowDragState.current.pointerId !== event.pointerId) return;
+    relationshipWindowDragState.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  };
+  const startRelationshipWindowResize = (event) => {
+    event.stopPropagation();
+    relationshipWindowResizeState.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      width: relationshipWindowSize.width,
+      height: relationshipWindowSize.height
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const moveRelationshipWindowResize = (event) => {
+    const resize = relationshipWindowResizeState.current;
+    if (!resize) return;
+    event.stopPropagation();
+    setRelationshipWindowSize(
+      clampWindowSize(
+        {
+          width: resize.width + event.clientX - resize.startX,
+          height: resize.height + event.clientY - resize.startY
+        },
+        relationshipWindowMinSize,
+        relationshipWindowMaxSize
+      )
+    );
+  };
+  const stopRelationshipWindowResize = (event) => {
+    event.stopPropagation();
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    relationshipWindowResizeState.current = null;
+  };
+  const openStoryWindow = (kind) => {
+    const z = storyNextZRef.current++;
+    setStoryWindows((current) => {
+      if (current.some((window2) => window2.kind === kind)) {
+        return current.map((window2) => window2.kind === kind ? { ...window2, z } : window2);
+      }
+      return [...current, createStoryWindow(kind, z)];
+    });
+  };
+  const closeStoryWindow = (kind) => {
+    setStoryWindows((current) => current.filter((window2) => window2.kind !== kind));
+  };
+  const updateStoryWindow = (kind, patch) => {
+    setStoryWindows((current) => current.map((window2) => window2.kind === kind ? { ...window2, ...patch } : window2));
+  };
+  const bringStoryWindowToFront = (kind) => {
+    const z = storyNextZRef.current++;
+    updateStoryWindow(kind, { z });
+  };
+  const startStoryWindowDrag = (kind, event) => {
+    const currentWindow = storyWindows.find((window2) => window2.kind === kind);
+    if (!currentWindow) return;
+    bringStoryWindowToFront(kind);
+    storyDragState.current = {
+      kind,
+      startX: event.clientX,
+      startY: event.clientY,
+      baseX: currentWindow.x,
+      baseY: currentWindow.y
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const moveStoryWindow = (event) => {
+    const drag = storyDragState.current;
+    if (!drag) return;
+    updateStoryWindow(drag.kind, {
+      x: drag.baseX + event.clientX - drag.startX,
+      y: drag.baseY + event.clientY - drag.startY
+    });
+  };
+  const stopStoryWindowDrag = (event) => {
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    storyDragState.current = null;
+  };
+  const startStoryWindowResize = (kind, event) => {
+    const currentWindow = storyWindows.find((window2) => window2.kind === kind);
+    if (!currentWindow) return;
+    event.stopPropagation();
+    bringStoryWindowToFront(kind);
+    storyResizeState.current = {
+      kind,
+      startX: event.clientX,
+      startY: event.clientY,
+      width: currentWindow.width,
+      height: currentWindow.height
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const moveStoryWindowResize = (event) => {
+    const resize = storyResizeState.current;
+    if (!resize) return;
+    event.stopPropagation();
+    updateStoryWindow(
+      resize.kind,
+      clampWindowSize(
+        {
+          width: resize.width + event.clientX - resize.startX,
+          height: resize.height + event.clientY - resize.startY
+        },
+        storyWindowMinSize,
+        storyWindowMaxSize
+      )
+    );
+  };
+  const stopStoryWindowResize = (event) => {
+    event.stopPropagation();
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    storyResizeState.current = null;
+  };
+  const submitStoryWindowInstruction = async (window2) => {
+    const text = window2.draft.trim();
+    if (!text || window2.sendStatus === "sending") return;
+    const title = storyWindowTitles[window2.kind];
+    updateStoryWindow(window2.kind, { draft: "", sendStatus: "sending" });
+    const message = [
+      `【${title}】`,
+      `用户指令：${text}`,
+      "请只围绕这个窗口里的剧情材料给出可执行建议，避免复述全量设定。"
+    ].join("\n");
+    try {
+      await onSendPlotInstruction(message);
+      updateStoryWindow(window2.kind, { sendStatus: "sent" });
+    } catch {
+      updateStoryWindow(window2.kind, { sendStatus: "error" });
+    }
+  };
+  const submitSuggestion = async (event) => {
+    event.preventDefault();
+    const text = suggestionText.trim();
+    const edge = relationshipEdges.find((item) => item.id === activeEdgeId);
+    if (!text || !edge || suggestionSendingRef.current) return;
+    suggestionSendingRef.current = true;
+    const id = createSuggestionId();
+    setSuggestionText("");
+    setSuggestions((current) => [...current, { id, edgeId: edge.id, text, status: "sending" }]);
+    const message = [
+      "【人物关系图建议】",
+      `关系：${edge.from} -> ${edge.to}`,
+      `当前状态：${edge.status}`,
+      `主要剧情引导：${edge.guide}`,
+      `用户建议：${text}`,
+      "请判断这条建议是否适合加入后续剧情，并给出可执行调整。"
+    ].join("\n");
+    try {
+      const result = await onSendPlotInstruction(message);
+      const response = getInstructionResponse(result);
+      setSuggestions(
+        (current) => current.map(
+          (item) => item.id === id ? {
+            ...item,
+            status: response ? "sent" : "queued",
+            response
+          } : item
+        )
+      );
+    } catch (error) {
+      setSuggestions(
+        (current) => current.map(
+          (item) => item.id === id ? { ...item, status: "error", response: error instanceof Error ? error.message : String(error) } : item
+        )
+      );
+    } finally {
+      suggestionSendingRef.current = false;
+    }
+  };
+  return /* @__PURE__ */ jsxDEV("section", { className: "story-flow-map", "aria-label": "故事流程图", children: [
+    /* @__PURE__ */ jsxDEV("header", { className: "flow-header", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "FLOW MAP" }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 430,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("h3", { children: "故事流程图" }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 431,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 429,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV(Network, { "aria-hidden": "true", size: 18 }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 433,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 428,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("section", { className: "relationship-launch-panel", "aria-label": "人物关系入口", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("span", { children: "RELATION MAP" }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 438,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { children: "人物关系图" }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 439,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 437,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("dl", { children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("dt", { children: "角色" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 443,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("dd", { children: storyActors.length }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 444,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 442,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("dt", { children: "连线" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 447,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("dd", { children: relationshipEdges.length }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 448,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 446,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("dt", { children: "主关系" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 451,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("dd", { children: relationshipEdges[0]?.status }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 452,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 450,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 441,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { type: "button", "aria-label": "打开人物关系窗", onClick: () => setRelationshipWindowOpen(true), children: [
+        /* @__PURE__ */ jsxDEV(Network, { "aria-hidden": "true", size: 16 }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 456,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { children: "人物关系窗" }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 457,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 455,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 436,
+      columnNumber: 7
+    }, this),
+    isRelationshipWindowOpen ? /* @__PURE__ */ jsxDEV("div", { className: "relationship-window-backdrop", children: /* @__PURE__ */ jsxDEV(
+      "section",
+      {
+        className: "relationship-window",
+        role: "dialog",
+        "aria-modal": "true",
+        "aria-label": "人物关系窗口",
+        style: {
+          transform: `translate(${relationshipWindowPosition.x}px, ${relationshipWindowPosition.y}px)`,
+          width: `${relationshipWindowSize.width}px`,
+          height: `${relationshipWindowSize.height}px`
+        },
+        children: [
+          /* @__PURE__ */ jsxDEV(
+            "header",
+            {
+              className: "relationship-window-header",
+              "aria-label": "拖动人物关系窗口",
+              onPointerDown: startRelationshipWindowDrag,
+              onPointerMove: moveRelationshipWindow,
+              onPointerUp: stopRelationshipWindowDrag,
+              onPointerCancel: stopRelationshipWindowDrag,
+              children: [
+                /* @__PURE__ */ jsxDEV("div", { children: [
+                  /* @__PURE__ */ jsxDEV("span", { children: "RELATION WINDOW" }, void 0, false, {
+                    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                    lineNumber: 483,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("strong", { children: "人物关系窗口" }, void 0, false, {
+                    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                    lineNumber: 484,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 482,
+                  columnNumber: 15
+                }, this),
+                /* @__PURE__ */ jsxDEV("div", { className: "relationship-toolbar", children: [
+                  /* @__PURE__ */ jsxDEV(Move, { "aria-hidden": "true", size: 16 }, void 0, false, {
+                    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                    lineNumber: 487,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("button", { type: "button", "aria-label": "缩小关系图", onPointerDown: (event) => event.stopPropagation(), onClick: zoomOut, children: /* @__PURE__ */ jsxDEV(ZoomOut, { "aria-hidden": "true", size: 15 }, void 0, false, {
+                    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                    lineNumber: 489,
+                    columnNumber: 19
+                  }, this) }, void 0, false, {
+                    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                    lineNumber: 488,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("strong", { children: [
+                    Math.round(zoom * 100),
+                    "%"
+                  ] }, void 0, true, {
+                    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                    lineNumber: 491,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("button", { type: "button", "aria-label": "放大关系图", onPointerDown: (event) => event.stopPropagation(), onClick: zoomIn, children: /* @__PURE__ */ jsxDEV(ZoomIn, { "aria-hidden": "true", size: 15 }, void 0, false, {
+                    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                    lineNumber: 493,
+                    columnNumber: 19
+                  }, this) }, void 0, false, {
+                    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                    lineNumber: 492,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("button", { type: "button", "aria-label": "重置关系图", onPointerDown: (event) => event.stopPropagation(), onClick: resetView, children: /* @__PURE__ */ jsxDEV(RotateCcw, { "aria-hidden": "true", size: 15 }, void 0, false, {
+                    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                    lineNumber: 496,
+                    columnNumber: 19
+                  }, this) }, void 0, false, {
+                    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                    lineNumber: 495,
+                    columnNumber: 17
+                  }, this),
+                  /* @__PURE__ */ jsxDEV("button", { type: "button", "aria-label": "关闭人物关系窗口", onPointerDown: (event) => event.stopPropagation(), onClick: () => setRelationshipWindowOpen(false), children: /* @__PURE__ */ jsxDEV(X, { "aria-hidden": "true", size: 15 }, void 0, false, {
+                    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                    lineNumber: 499,
+                    columnNumber: 19
+                  }, this) }, void 0, false, {
+                    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                    lineNumber: 498,
+                    columnNumber: 17
+                  }, this)
+                ] }, void 0, true, {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 486,
+                  columnNumber: 15
+                }, this)
+              ]
+            },
+            void 0,
+            true,
+            {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 474,
+              columnNumber: 13
+            },
+            this
+          ),
+          /* @__PURE__ */ jsxDEV("div", { className: "relationship-window-layout", children: [
+            /* @__PURE__ */ jsxDEV(
+              "div",
+              {
+                className: "relationship-canvas",
+                "aria-label": "可拖拽人物关系画布",
+                onPointerDown: startPan,
+                onPointerMove: movePan,
+                onPointerUp: stopPan,
+                onPointerCancel: stopPan,
+                children: /* @__PURE__ */ jsxDEV(
+                  "div",
+                  {
+                    className: "relationship-canvas-inner",
+                    style: { transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` },
+                    children: /* @__PURE__ */ jsxDEV(RelationshipGraph, { suggestions }, void 0, false, {
+                      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                      lineNumber: 516,
+                      columnNumber: 19
+                    }, this)
+                  },
+                  void 0,
+                  false,
+                  {
+                    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                    lineNumber: 512,
+                    columnNumber: 17
+                  },
+                  this
+                )
+              },
+              void 0,
+              false,
+              {
+                fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                lineNumber: 504,
+                columnNumber: 15
+              },
+              this
+            ),
+            /* @__PURE__ */ jsxDEV("div", { className: "relationship-side-panel", children: [
+              /* @__PURE__ */ jsxDEV(RelationshipLog, {}, void 0, false, {
+                fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                lineNumber: 520,
+                columnNumber: 17
+              }, this),
+              /* @__PURE__ */ jsxDEV(
+                RelationshipSuggestionPanel,
+                {
+                  activeEdgeId,
+                  onActiveEdgeChange: setActiveEdgeId,
+                  onSubmit: submitSuggestion,
+                  isSending: isSuggestionSending,
+                  suggestionText,
+                  onSuggestionTextChange: setSuggestionText
+                },
+                void 0,
+                false,
+                {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 521,
+                  columnNumber: 17
+                },
+                this
+              )
+            ] }, void 0, true, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 519,
+              columnNumber: 15
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 503,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "button",
+            {
+              type: "button",
+              className: "window-resize-handle",
+              "aria-label": "调整人物关系窗口大小",
+              onPointerDown: startRelationshipWindowResize,
+              onPointerMove: moveRelationshipWindowResize,
+              onPointerUp: stopRelationshipWindowResize,
+              onPointerCancel: stopRelationshipWindowResize
+            },
+            void 0,
+            false,
+            {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 531,
+              columnNumber: 13
+            },
+            this
+          )
+        ]
+      },
+      void 0,
+      true,
+      {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 463,
+        columnNumber: 11
+      },
+      this
+    ) }, void 0, false, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 462,
+      columnNumber: 7
+    }, this) : null,
+    /* @__PURE__ */ jsxDEV("section", { className: "scene-card-board", "aria-label": "场景卡片", children: [
+      /* @__PURE__ */ jsxDEV("header", { children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("span", { children: "SCENE CARDS" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 547,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("strong", { children: "场景卡片" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 548,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 546,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("button", { type: "button", "aria-label": "打开场景卡片窗口", onClick: () => openStoryWindow("scenes"), children: "场景窗" }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 550,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 545,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "scene-card-row", children: sceneCards.map(
+        (scene) => /* @__PURE__ */ jsxDEV("article", { className: "scene-card", "data-edge-id": scene.relationEdgeId, children: [
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV("span", { children: scene.plotLine }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 558,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("strong", { children: scene.title }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 559,
+              columnNumber: 17
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 557,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { children: [
+            /* @__PURE__ */ jsxDEV("b", { children: "目标" }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 561,
+              columnNumber: 18
+            }, this),
+            scene.goal
+          ] }, void 0, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 561,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { children: [
+            /* @__PURE__ */ jsxDEV("b", { children: "冲突" }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 562,
+              columnNumber: 18
+            }, this),
+            scene.conflict
+          ] }, void 0, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 562,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { children: [
+            /* @__PURE__ */ jsxDEV("b", { children: "钩子" }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 563,
+              columnNumber: 18
+            }, this),
+            scene.hook
+          ] }, void 0, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 563,
+            columnNumber: 15
+          }, this)
+        ] }, scene.id, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 556,
+          columnNumber: 11
+        }, this)
+      ) }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 554,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "relationship-timeline", "aria-label": "关系时间线", children: [
+        /* @__PURE__ */ jsxDEV("header", { children: [
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV("span", { children: "RELATION TIMELINE" }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 570,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("strong", { children: "关系时间线" }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 571,
+              columnNumber: 15
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 569,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("button", { type: "button", "aria-label": "打开关系时间线窗口", onClick: () => openStoryWindow("timeline"), children: "时间线窗" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 573,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 568,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "timeline-row", children: relationshipTimeline.map(
+          (item) => /* @__PURE__ */ jsxDEV("article", { className: `timeline-item timeline-${item.tone}`, "data-edge-id": item.edgeId, children: [
+            /* @__PURE__ */ jsxDEV("span", { children: item.sceneTitle }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 580,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("strong", { children: [
+              item.relation,
+              " / ",
+              item.status
+            ] }, void 0, true, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 581,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("p", { children: [
+              /* @__PURE__ */ jsxDEV("b", { children: "变化原因" }, void 0, false, {
+                fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                lineNumber: 582,
+                columnNumber: 20
+              }, this),
+              item.cause
+            ] }, void 0, true, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 582,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("p", { children: [
+              /* @__PURE__ */ jsxDEV("b", { children: "后续变化" }, void 0, false, {
+                fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                lineNumber: 583,
+                columnNumber: 20
+              }, this),
+              item.nextShift
+            ] }, void 0, true, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 583,
+              columnNumber: 17
+            }, this)
+          ] }, item.id, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 579,
+            columnNumber: 13
+          }, this)
+        ) }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 577,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 567,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 544,
+      columnNumber: 7
+    }, this),
+    storyWindows.length ? /* @__PURE__ */ jsxDEV("div", { className: "story-function-window-desk", "aria-label": "故事多窗口工作台", children: storyWindows.map(
+      (window2) => /* @__PURE__ */ jsxDEV(
+        StoryFunctionWindow,
+        {
+          activeWindow: window2.kind,
+          draft: window2.draft,
+          onBringToFront: () => bringStoryWindowToFront(window2.kind),
+          onClose: () => closeStoryWindow(window2.kind),
+          onDragEnd: stopStoryWindowDrag,
+          onDragMove: moveStoryWindow,
+          onDragStart: (event) => startStoryWindowDrag(window2.kind, event),
+          onDraftChange: (value) => updateStoryWindow(window2.kind, { draft: value, sendStatus: "idle" }),
+          onResizeEnd: stopStoryWindowResize,
+          onResizeMove: moveStoryWindowResize,
+          onResizeStart: (event) => startStoryWindowResize(window2.kind, event),
+          onSubmitInstruction: () => submitStoryWindowInstruction(window2),
+          sendStatus: window2.sendStatus,
+          size: { width: window2.width, height: window2.height },
+          transform: `translate(${window2.x}px, ${window2.y}px)`,
+          zIndex: window2.z
+        },
+        window2.kind,
+        false,
+        {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 593,
+          columnNumber: 9
+        },
+        this
+      )
+    ) }, void 0, false, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 591,
+      columnNumber: 7
+    }, this) : null,
+    /* @__PURE__ */ jsxDEV("div", { className: "flow-stage-rail", children: flowStages.map(
+      (stage, index) => /* @__PURE__ */ jsxDEV("div", { className: "flow-stage-step", children: [
+        /* @__PURE__ */ jsxDEV("article", { children: [
+          /* @__PURE__ */ jsxDEV("strong", { children: stage.label }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 620,
+            columnNumber: 15
+          }, this),
+          /* @__PURE__ */ jsxDEV("p", { children: stage.summary }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 621,
+            columnNumber: 15
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 619,
+          columnNumber: 13
+        }, this),
+        index < flowStages.length - 1 ? /* @__PURE__ */ jsxDEV("span", { "aria-hidden": "true", children: "->" }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 623,
+          columnNumber: 46
+        }, this) : null
+      ] }, stage.id, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 618,
+        columnNumber: 9
+      }, this)
+    ) }, void 0, false, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 616,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "flow-signal-row", children: flowSignals.map(
+      (signal) => /* @__PURE__ */ jsxDEV("article", { children: [
+        /* @__PURE__ */ jsxDEV("strong", { children: signal.label }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 631,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { children: signal.value }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 632,
+          columnNumber: 13
+        }, this)
+      ] }, signal.label, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 630,
+        columnNumber: 9
+      }, this)
+    ) }, void 0, false, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 628,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+    lineNumber: 427,
+    columnNumber: 5
+  }, this);
+}
+_s(StoryFlowMap, "MPbKd4XTzJxBu4hu9d89aoZ3Lng=");
+_c = StoryFlowMap;
+function StoryFunctionWindow({
+  activeWindow,
+  draft,
+  onBringToFront,
+  onClose,
+  onDragEnd,
+  onDragMove,
+  onDragStart,
+  onDraftChange,
+  onResizeEnd,
+  onResizeMove,
+  onResizeStart,
+  onSubmitInstruction,
+  sendStatus,
+  size,
+  transform,
+  zIndex
+}) {
+  const title = storyWindowTitles[activeWindow];
+  return /* @__PURE__ */ jsxDEV(
+    "section",
+    {
+      className: "story-function-window",
+      role: "dialog",
+      "aria-label": title,
+      style: { transform, zIndex, width: `${size.width}px`, height: `${size.height}px` },
+      onPointerDown: onBringToFront,
+      children: [
+        /* @__PURE__ */ jsxDEV(
+          "header",
+          {
+            className: "story-function-window-header",
+            "aria-label": `拖动${title}`,
+            onPointerDown: onDragStart,
+            onPointerMove: onDragMove,
+            onPointerUp: onDragEnd,
+            onPointerCancel: onDragEnd,
+            children: [
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("span", { children: "STORY WINDOW" }, void 0, false, {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 694,
+                  columnNumber: 11
+                }, this),
+                /* @__PURE__ */ jsxDEV("strong", { children: title }, void 0, false, {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 695,
+                  columnNumber: 11
+                }, this)
+              ] }, void 0, true, {
+                fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                lineNumber: 693,
+                columnNumber: 9
+              }, this),
+              /* @__PURE__ */ jsxDEV("button", { type: "button", "aria-label": "关闭故事功能窗口", onPointerDown: (event) => event.stopPropagation(), onClick: onClose, children: /* @__PURE__ */ jsxDEV(X, { "aria-hidden": "true", size: 15 }, void 0, false, {
+                fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                lineNumber: 698,
+                columnNumber: 11
+              }, this) }, void 0, false, {
+                fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                lineNumber: 697,
+                columnNumber: 9
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 685,
+            columnNumber: 7
+          },
+          this
+        ),
+        activeWindow === "scenes" ? /* @__PURE__ */ jsxDEV("div", { className: "story-window-grid", children: sceneCards.map(
+          (scene) => /* @__PURE__ */ jsxDEV("article", { className: "story-window-card", "data-edge-id": scene.relationEdgeId, children: [
+            /* @__PURE__ */ jsxDEV("span", { children: scene.plotLine }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 705,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("strong", { children: scene.title }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 706,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("dl", { children: [
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("dt", { children: "场景作用" }, void 0, false, {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 709,
+                  columnNumber: 19
+                }, this),
+                /* @__PURE__ */ jsxDEV("dd", { children: scene.goal }, void 0, false, {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 710,
+                  columnNumber: 19
+                }, this)
+              ] }, void 0, true, {
+                fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                lineNumber: 708,
+                columnNumber: 17
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("dt", { children: "冲突压力" }, void 0, false, {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 713,
+                  columnNumber: 19
+                }, this),
+                /* @__PURE__ */ jsxDEV("dd", { children: scene.conflict }, void 0, false, {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 714,
+                  columnNumber: 19
+                }, this)
+              ] }, void 0, true, {
+                fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                lineNumber: 712,
+                columnNumber: 17
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("dt", { children: "读者钩子" }, void 0, false, {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 717,
+                  columnNumber: 19
+                }, this),
+                /* @__PURE__ */ jsxDEV("dd", { children: scene.hook }, void 0, false, {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 718,
+                  columnNumber: 19
+                }, this)
+              ] }, void 0, true, {
+                fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                lineNumber: 716,
+                columnNumber: 17
+              }, this)
+            ] }, void 0, true, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 707,
+              columnNumber: 15
+            }, this)
+          ] }, scene.id, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 704,
+            columnNumber: 9
+          }, this)
+        ) }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 702,
+          columnNumber: 7
+        }, this) : /* @__PURE__ */ jsxDEV("div", { className: "story-window-grid", children: relationshipTimeline.map(
+          (item) => /* @__PURE__ */ jsxDEV("article", { className: `story-window-card story-window-${item.tone}`, "data-edge-id": item.edgeId, children: [
+            /* @__PURE__ */ jsxDEV("span", { children: item.sceneTitle }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 728,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("strong", { children: [
+              item.relation,
+              " / ",
+              item.status
+            ] }, void 0, true, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 729,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("dl", { children: [
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("dt", { children: "变化原因" }, void 0, false, {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 732,
+                  columnNumber: 19
+                }, this),
+                /* @__PURE__ */ jsxDEV("dd", { children: item.cause }, void 0, false, {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 733,
+                  columnNumber: 19
+                }, this)
+              ] }, void 0, true, {
+                fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                lineNumber: 731,
+                columnNumber: 17
+              }, this),
+              /* @__PURE__ */ jsxDEV("div", { children: [
+                /* @__PURE__ */ jsxDEV("dt", { children: "后续关系变化" }, void 0, false, {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 736,
+                  columnNumber: 19
+                }, this),
+                /* @__PURE__ */ jsxDEV("dd", { children: item.nextShift }, void 0, false, {
+                  fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                  lineNumber: 737,
+                  columnNumber: 19
+                }, this)
+              ] }, void 0, true, {
+                fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                lineNumber: 735,
+                columnNumber: 17
+              }, this)
+            ] }, void 0, true, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 730,
+              columnNumber: 15
+            }, this)
+          ] }, item.id, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 727,
+            columnNumber: 9
+          }, this)
+        ) }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 725,
+          columnNumber: 7
+        }, this),
+        /* @__PURE__ */ jsxDEV(
+          StoryWindowAgentBox,
+          {
+            draft,
+            onDraftChange,
+            onSubmit: onSubmitInstruction,
+            status: sendStatus,
+            title
+          },
+          void 0,
+          false,
+          {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 744,
+            columnNumber: 7
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "button",
+            className: "window-resize-handle",
+            "aria-label": `调整${title}大小`,
+            onPointerDown: onResizeStart,
+            onPointerMove: onResizeMove,
+            onPointerUp: onResizeEnd,
+            onPointerCancel: onResizeEnd
+          },
+          void 0,
+          false,
+          {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 751,
+            columnNumber: 7
+          },
+          this
+        )
+      ]
+    },
+    void 0,
+    true,
+    {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 678,
+      columnNumber: 5
+    },
+    this
+  );
+}
+_c2 = StoryFunctionWindow;
+function StoryWindowAgentBox({
+  draft,
+  onDraftChange,
+  onSubmit,
+  status,
+  title
+}) {
+  const statusLabel = {
+    idle: "待发送",
+    sending: "发送中",
+    sent: "已发送",
+    error: "发送失败"
+  };
+  const submit = (event) => {
+    event.preventDefault();
+    onSubmit();
+  };
+  return /* @__PURE__ */ jsxDEV("form", { className: "window-agent-box story-window-agent-box", onSubmit: submit, children: [
+    /* @__PURE__ */ jsxDEV("label", { children: [
+      /* @__PURE__ */ jsxDEV("span", { children: [
+        title,
+        " AI 指令"
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 792,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV(
+        "textarea",
+        {
+          "aria-label": `${title} AI 指令`,
+          value: draft,
+          onChange: (event) => onDraftChange(event.currentTarget.value),
+          placeholder: "例如：强化 S01 的读者钩子，只给三个可替换方案。"
+        },
+        void 0,
+        false,
+        {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 793,
+          columnNumber: 9
+        },
+        this
+      )
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 791,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "window-agent-actions", children: [
+      /* @__PURE__ */ jsxDEV("span", { className: `window-agent-status status-${status}`, children: statusLabel[status] }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 801,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("button", { type: "submit", "aria-label": `发送${title}指令`, disabled: !draft.trim() || status === "sending", children: [
+        /* @__PURE__ */ jsxDEV(SendHorizontal, { "aria-hidden": "true", size: 15 }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 803,
+          columnNumber: 11
+        }, this),
+        "发送"
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 802,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 800,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+    lineNumber: 790,
+    columnNumber: 5
+  }, this);
+}
+_c3 = StoryWindowAgentBox;
+function RelationshipGraph({ suggestions }) {
+  return /* @__PURE__ */ jsxDEV("div", { className: "relationship-map", children: [
+    /* @__PURE__ */ jsxDEV("svg", { "aria-hidden": "true", className: "relationship-lines", viewBox: "0 0 760 230", preserveAspectRatio: "none", children: [
+      /* @__PURE__ */ jsxDEV("defs", { children: [
+        /* @__PURE__ */ jsxDEV("marker", { id: "arrow-cyan", markerHeight: "8", markerWidth: "8", orient: "auto", refX: "7", refY: "4", children: /* @__PURE__ */ jsxDEV("path", { d: "M0,0 L8,4 L0,8 Z" }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 817,
+          columnNumber: 13
+        }, this) }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 816,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("marker", { id: "arrow-magenta", markerHeight: "8", markerWidth: "8", orient: "auto", refX: "7", refY: "4", children: /* @__PURE__ */ jsxDEV("path", { d: "M0,0 L8,4 L0,8 Z" }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 820,
+          columnNumber: 13
+        }, this) }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 819,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("marker", { id: "arrow-amber", markerHeight: "8", markerWidth: "8", orient: "auto", refX: "7", refY: "4", children: /* @__PURE__ */ jsxDEV("path", { d: "M0,0 L8,4 L0,8 Z" }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 823,
+          columnNumber: 13
+        }, this) }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 822,
+          columnNumber: 11
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 815,
+        columnNumber: 9
+      }, this),
+      relationshipEdges.map(
+        (edge) => /* @__PURE__ */ jsxDEV(
+          "path",
+          {
+            className: `line-${edge.tone}`,
+            "data-edge-id": edge.id,
+            d: edge.pathD,
+            markerEnd: `url(#arrow-${edge.tone})`
+          },
+          edge.id,
+          false,
+          {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 827,
+            columnNumber: 9
+          },
+          this
+        )
+      )
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 814,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "edge-labels", "aria-label": "关系连线剧情", children: relationshipEdges.map(
+      (edge) => /* @__PURE__ */ jsxDEV("article", { className: `edge-label edge-${edge.tone}`, children: [
+        /* @__PURE__ */ jsxDEV("span", { children: [
+          edge.from,
+          " -> ",
+          edge.to
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 840,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("strong", { children: edge.status }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 841,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { children: edge.guide }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 842,
+          columnNumber: 13
+        }, this)
+      ] }, edge.id, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 839,
+        columnNumber: 9
+      }, this)
+    ) }, void 0, false, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 837,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "actor-grid", children: storyActors.map(
+      (actor) => /* @__PURE__ */ jsxDEV("article", { className: `actor-node actor-${actor.lane}`, children: [
+        /* @__PURE__ */ jsxDEV("strong", { children: actor.name }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 850,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV("span", { children: actor.role }, void 0, false, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 851,
+          columnNumber: 13
+        }, this)
+      ] }, actor.id, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 849,
+        columnNumber: 9
+      }, this)
+    ) }, void 0, false, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 847,
+      columnNumber: 7
+    }, this),
+    suggestions.length ? /* @__PURE__ */ jsxDEV("div", { className: "relationship-suggestion-layer", "aria-label": "图中 AI 建议", children: suggestions.map((suggestion) => {
+      const position = suggestionPositions[suggestion.edgeId] ?? { left: "50%", top: "50%" };
+      return /* @__PURE__ */ jsxDEV(
+        "article",
+        {
+          className: `relationship-suggestion-chip suggestion-${suggestion.status}`,
+          "data-suggestion-edge-id": suggestion.edgeId,
+          style: position,
+          children: [
+            /* @__PURE__ */ jsxDEV("div", { className: "relationship-suggestion-chip-head", children: [
+              /* @__PURE__ */ jsxDEV("span", { children: "AI建议" }, void 0, false, {
+                fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                lineNumber: 868,
+                columnNumber: 19
+              }, this),
+              /* @__PURE__ */ jsxDEV("strong", { children: suggestionStatusLabels[suggestion.status] }, void 0, false, {
+                fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+                lineNumber: 869,
+                columnNumber: 19
+              }, this)
+            ] }, void 0, true, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 867,
+              columnNumber: 17
+            }, this),
+            /* @__PURE__ */ jsxDEV("p", { children: suggestion.text }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 871,
+              columnNumber: 17
+            }, this)
+          ]
+        },
+        suggestion.id,
+        true,
+        {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 861,
+          columnNumber: 13
+        },
+        this
+      );
+    }) }, void 0, false, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 857,
+      columnNumber: 7
+    }, this) : null
+  ] }, void 0, true, {
+    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+    lineNumber: 813,
+    columnNumber: 5
+  }, this);
+}
+_c4 = RelationshipGraph;
+function RelationshipSuggestionPanel({
+  activeEdgeId,
+  isSending,
+  onActiveEdgeChange,
+  onSubmit,
+  suggestionText,
+  onSuggestionTextChange
+}) {
+  return /* @__PURE__ */ jsxDEV("form", { className: "relationship-suggestion-panel", onSubmit, children: [
+    /* @__PURE__ */ jsxDEV("header", { children: [
+      /* @__PURE__ */ jsxDEV("span", { children: "AI SUGGESTION" }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 899,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("strong", { children: "AI 建议入图" }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 900,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 898,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("label", { children: [
+      /* @__PURE__ */ jsxDEV("span", { children: "关系线" }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 903,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV(
+        "select",
+        {
+          "aria-label": "选择人物关系线",
+          value: activeEdgeId,
+          onChange: (event) => onActiveEdgeChange(event.currentTarget.value),
+          children: relationshipEdges.map(
+            (edge) => /* @__PURE__ */ jsxDEV("option", { value: edge.id, children: [
+              edge.from,
+              " -> ",
+              edge.to,
+              " / ",
+              edge.status
+            ] }, edge.id, true, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 910,
+              columnNumber: 11
+            }, this)
+          )
+        },
+        void 0,
+        false,
+        {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 904,
+          columnNumber: 9
+        },
+        this
+      )
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 902,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("label", { children: [
+      /* @__PURE__ */ jsxDEV("span", { children: "建议" }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 917,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV(
+        "textarea",
+        {
+          "aria-label": "AI 关系建议",
+          value: suggestionText,
+          onChange: (event) => onSuggestionTextChange(event.currentTarget.value),
+          placeholder: "例如：让女主在公开失败后替主角补一句证词。"
+        },
+        void 0,
+        false,
+        {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 918,
+          columnNumber: 9
+        },
+        this
+      )
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 916,
+      columnNumber: 7
+    }, this),
+    /* @__PURE__ */ jsxDEV("button", { type: "submit", "aria-label": "提交 AI 建议", disabled: !suggestionText.trim() || isSending, children: [
+      /* @__PURE__ */ jsxDEV(SendHorizontal, { "aria-hidden": "true", size: 15 }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 926,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("span", { children: "提交 AI 建议" }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 927,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 925,
+      columnNumber: 7
+    }, this)
+  ] }, void 0, true, {
+    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+    lineNumber: 897,
+    columnNumber: 5
+  }, this);
+}
+_c5 = RelationshipSuggestionPanel;
+function RelationshipLog() {
+  return /* @__PURE__ */ jsxDEV("aside", { className: "relationship-log relationship-log-window", children: [
+    /* @__PURE__ */ jsxDEV("header", { children: [
+      /* @__PURE__ */ jsxDEV("span", { children: "RELATION LOG" }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 937,
+        columnNumber: 9
+      }, this),
+      /* @__PURE__ */ jsxDEV("strong", { children: "关系演变日志" }, void 0, false, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 938,
+        columnNumber: 9
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+      lineNumber: 936,
+      columnNumber: 7
+    }, this),
+    relationshipEdges.map(
+      (edge) => /* @__PURE__ */ jsxDEV("article", { className: `relation-card relation-${edge.tone}`, children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("span", { children: [
+            edge.from,
+            " ",
+            "->",
+            " ",
+            edge.to
+          ] }, void 0, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 943,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("strong", { children: edge.status }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 944,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 942,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("dl", { children: [
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV("dt", { children: "强度" }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 948,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("dd", { children: [
+              "强度 ",
+              edge.strength
+            ] }, void 0, true, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 949,
+              columnNumber: 15
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 947,
+            columnNumber: 13
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV("dt", { children: "首现" }, void 0, false, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 952,
+              columnNumber: 15
+            }, this),
+            /* @__PURE__ */ jsxDEV("dd", { children: [
+              "首现 ",
+              edge.firstSeen
+            ] }, void 0, true, {
+              fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+              lineNumber: 953,
+              columnNumber: 15
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 951,
+            columnNumber: 13
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 946,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { children: [
+          /* @__PURE__ */ jsxDEV("b", { children: "演变" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 956,
+            columnNumber: 14
+          }, this),
+          edge.evolution
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 956,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { children: [
+          /* @__PURE__ */ jsxDEV("b", { children: "主要剧情引导" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 957,
+            columnNumber: 14
+          }, this),
+          edge.guide
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 957,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { children: [
+          /* @__PURE__ */ jsxDEV("b", { children: "变化原因" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 958,
+            columnNumber: 14
+          }, this),
+          edge.cause
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 958,
+          columnNumber: 11
+        }, this),
+        /* @__PURE__ */ jsxDEV("p", { children: [
+          /* @__PURE__ */ jsxDEV("b", { children: "后续变化" }, void 0, false, {
+            fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+            lineNumber: 959,
+            columnNumber: 14
+          }, this),
+          edge.nextShift
+        ] }, void 0, true, {
+          fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+          lineNumber: 959,
+          columnNumber: 11
+        }, this)
+      ] }, edge.id, true, {
+        fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+        lineNumber: 941,
+        columnNumber: 7
+      }, this)
+    )
+  ] }, void 0, true, {
+    fileName: "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx",
+    lineNumber: 935,
+    columnNumber: 5
+  }, this);
+}
+_c6 = RelationshipLog;
+var _c, _c2, _c3, _c4, _c5, _c6;
+$RefreshReg$(_c, "StoryFlowMap");
+$RefreshReg$(_c2, "StoryFunctionWindow");
+$RefreshReg$(_c3, "StoryWindowAgentBox");
+$RefreshReg$(_c4, "RelationshipGraph");
+$RefreshReg$(_c5, "RelationshipSuggestionPanel");
+$RefreshReg$(_c6, "RelationshipLog");
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+function $RefreshReg$(type, id) {
+  return RefreshRuntime.register(type, "D:/OH-WorkSpace/novel-prompt-guide/web/src/components/StoryFlowMap.tsx " + id);
+}
+function $RefreshSig$() {
+  return RefreshRuntime.createSignatureFunctionForTransform();
+}
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBNmFVOztBQTdhVixTQUFTQSxRQUFRQyxnQkFBbUQ7QUFDcEUsU0FBU0MsTUFBTUMsU0FBU0MsV0FBV0MsZ0JBQWdCQyxHQUFHQyxRQUFRQyxlQUFlO0FBQzdFLFNBQVNDLGdCQUFnQjtBQUN6QjtBQUFBLEVBQ0VDO0FBQUFBLEVBQ0FDO0FBQUFBLEVBQ0FDO0FBQUFBLEVBQ0FDO0FBQUFBLEVBQ0FDO0FBQUFBLEVBQ0FDO0FBQUFBLE9BQ0s7QUFFUCxNQUFNQyxXQUFXO0FBQ2pCLE1BQU1DLFdBQVc7QUFDakIsTUFBTUMsWUFBWTtBQUNsQixNQUFNQywyQkFBMkJQLGtCQUFrQixDQUFDLEdBQUdRLE1BQU07QUFFN0QsTUFBTUMsc0JBQXFFO0FBQUEsRUFDekUsZ0JBQWdCLEVBQUVDLE1BQU0sT0FBT0MsS0FBSyxNQUFNO0FBQUEsRUFDMUMsY0FBYyxFQUFFRCxNQUFNLE9BQU9DLEtBQUssTUFBTTtBQUFBLEVBQ3hDLGVBQWUsRUFBRUQsTUFBTSxPQUFPQyxLQUFLLE1BQU07QUFDM0M7QUFtQ0EsTUFBTUMsb0JBQTJEO0FBQUEsRUFDL0RDLFFBQVE7QUFBQSxFQUNSQyxVQUFVO0FBQ1o7QUFFQSxNQUFNQyxxQkFBOEU7QUFBQSxFQUNsRkYsUUFBUSxFQUFFRyxHQUFHLEdBQUdDLEdBQUcsRUFBRTtBQUFBLEVBQ3JCSCxVQUFVLEVBQUVFLEdBQUcsSUFBSUMsR0FBRyxHQUFHO0FBQzNCO0FBRUEsTUFBTUMseUJBQXFDLEVBQUVDLE9BQU8sS0FBS0MsUUFBUSxJQUFJO0FBQ3JFLE1BQU1DLHFCQUFpQyxFQUFFRixPQUFPLEtBQUtDLFFBQVEsSUFBSTtBQUNqRSxNQUFNRSxxQkFBaUMsRUFBRUgsT0FBTyxNQUFNQyxRQUFRLElBQUk7QUFDbEUsTUFBTUcsZ0NBQTRDLEVBQUVKLE9BQU8sTUFBTUMsUUFBUSxJQUFJO0FBQzdFLE1BQU1JLDRCQUF3QyxFQUFFTCxPQUFPLEtBQUtDLFFBQVEsSUFBSTtBQUN4RSxNQUFNSyw0QkFBd0MsRUFBRU4sT0FBTyxNQUFNQyxRQUFRLElBQUk7QUFFekUsU0FBU00sZ0JBQWdCQyxNQUFrQkMsU0FBcUJDLFNBQWlDO0FBQy9GLFNBQU87QUFBQSxJQUNMVixPQUFPVyxLQUFLQyxJQUFJRixRQUFRVixPQUFPVyxLQUFLRSxJQUFJSixRQUFRVCxPQUFPUSxLQUFLUixLQUFLLENBQUM7QUFBQSxJQUNsRUMsUUFBUVUsS0FBS0MsSUFBSUYsUUFBUVQsUUFBUVUsS0FBS0UsSUFBSUosUUFBUVIsUUFBUU8sS0FBS1AsTUFBTSxDQUFDO0FBQUEsRUFDeEU7QUFDRjtBQUVBLFNBQVNhLGtCQUFrQkMsTUFBNkJDLEdBQWdDO0FBQ3RGLFNBQU87QUFBQSxJQUNMRDtBQUFBQSxJQUNBbEIsR0FBR0QsbUJBQW1CbUIsSUFBSSxFQUFFbEI7QUFBQUEsSUFDNUJDLEdBQUdGLG1CQUFtQm1CLElBQUksRUFBRWpCO0FBQUFBLElBQzVCRSxPQUFPRCx1QkFBdUJDO0FBQUFBLElBQzlCQyxRQUFRRix1QkFBdUJFO0FBQUFBLElBQy9CZTtBQUFBQSxJQUNBQyxPQUFPO0FBQUEsSUFDUEMsWUFBWTtBQUFBLEVBQ2Q7QUFDRjtBQWFBLE1BQU1DLHlCQUEyRDtBQUFBLEVBQy9EQyxTQUFTO0FBQUEsRUFDVEMsUUFBUTtBQUFBLEVBQ1JDLE1BQU07QUFBQSxFQUNOQyxPQUFPO0FBQ1Q7QUFFQSxTQUFTQyxxQkFBcUI7QUFDNUIsTUFBSSxPQUFPQyxXQUFXLGVBQWUsZ0JBQWdCQSxRQUFRO0FBQzNELFdBQU9BLE9BQU9DLFdBQVc7QUFBQSxFQUMzQjtBQUNBLFNBQU8sY0FBY0MsS0FBS0MsSUFBSSxDQUFDO0FBQ2pDO0FBRUEsU0FBU0Msd0JBQXNEO0FBQzdELFFBQU1DLGNBQWMsSUFBSUMsZ0JBQWdCQyxPQUFPQyxTQUFTQyxNQUFNLEVBQUVDLElBQUksYUFBYTtBQUNqRixNQUFJTCxnQkFBZ0IsWUFBWUEsZ0JBQWdCLFlBQVk7QUFDMUQsV0FBT0E7QUFBQUEsRUFDVDtBQUNBLFNBQU87QUFDVDtBQUVBLGVBQWVNLDJCQUEyQkMsU0FBaUI7QUFDekQsU0FBTzNELFNBQVMyRCxTQUFTLE1BQU07QUFDakM7QUFFQSxTQUFTQyx1QkFBdUJDLFFBQWlCO0FBQy9DLE1BQUksQ0FBQ0EsVUFBVSxPQUFPQSxXQUFXLFlBQVksRUFBRSxjQUFjQSxRQUFTLFFBQU9DO0FBQzdFLFFBQU1DLFdBQVlGLE9BQWtDRTtBQUNwRCxTQUFPLE9BQU9BLGFBQWEsV0FBV0EsV0FBV0Q7QUFDbkQ7QUFFTyxnQkFBU0UsYUFBYSxFQUFFQyx3QkFBd0JQLDJCQUE0RSxJQUFJLENBQUMsR0FBRztBQUFBUSxLQUFBO0FBQ3pJLFFBQU0sQ0FBQ0MsMEJBQTBCQyx5QkFBeUIsSUFBSTVFO0FBQUFBLElBQzVELE1BQU0sSUFBSTZELGdCQUFnQkMsT0FBT0MsU0FBU0MsTUFBTSxFQUFFQyxJQUFJLFdBQVcsTUFBTTtBQUFBLEVBQ3pFO0FBQ0EsUUFBTSxDQUFDWSxNQUFNQyxPQUFPLElBQUk5RSxTQUFTLENBQUM7QUFDbEMsUUFBTSxDQUFDK0UsS0FBS0MsTUFBTSxJQUFJaEYsU0FBYyxFQUFFMkIsR0FBRyxHQUFHQyxHQUFHLEVBQUUsQ0FBQztBQUNsRCxRQUFNLENBQUNxRCw0QkFBNEJDLDZCQUE2QixJQUFJbEYsU0FBYyxFQUFFMkIsR0FBRyxHQUFHQyxHQUFHLEVBQUUsQ0FBQztBQUNoRyxRQUFNLENBQUN1RCx3QkFBd0JDLHlCQUF5QixJQUFJcEYsU0FBcUJrQyw2QkFBNkI7QUFDOUcsUUFBTSxDQUFDbUQsY0FBY0MsZUFBZSxJQUFJdEYsU0FBU2tCLHdCQUF3QjtBQUN6RSxRQUFNLENBQUNxRSxjQUFjQyxlQUFlLElBQUl4RixTQUFnQyxNQUFNO0FBQzVFLFVBQU15RixnQkFBZ0I5QixzQkFBc0I7QUFDNUMsV0FBTzhCLGdCQUFnQixDQUFDN0Msa0JBQWtCNkMsZUFBZSxDQUFDLENBQUMsSUFBSTtBQUFBLEVBQ2pFLENBQUM7QUFDRCxRQUFNLENBQUNDLGdCQUFnQkMsaUJBQWlCLElBQUkzRixTQUFTLEVBQUU7QUFDdkQsUUFBTSxDQUFDNEYsYUFBYUMsY0FBYyxJQUFJN0YsU0FBbUMsRUFBRTtBQUMzRSxRQUFNOEYsWUFBWS9GLE9BQXlCLElBQUk7QUFDL0MsUUFBTWdHLDhCQUE4QmhHLE9BQXlCLElBQUk7QUFDakUsUUFBTWlHLGdDQUFnQ2pHLE9BSzVCLElBQUk7QUFDZCxRQUFNa0csaUJBQWlCbEcsT0FNYixJQUFJO0FBQ2QsUUFBTW1HLG1CQUFtQm5HLE9BTWYsSUFBSTtBQUNkLFFBQU1vRyx1QkFBdUJwRyxPQUFPLEtBQUs7QUFDekMsUUFBTXFHLGdCQUFnQnJHLE9BQU8sQ0FBQztBQUU5QixRQUFNc0csU0FBU0EsTUFBTXZCLFFBQVEsQ0FBQ3dCLFVBQVU3RCxLQUFLQyxJQUFJMUIsVUFBVXVGLFFBQVFELFFBQVFyRixXQUFXdUYsUUFBUSxDQUFDLENBQUMsQ0FBQyxDQUFDO0FBQ2xHLFFBQU1DLFVBQVVBLE1BQU0zQixRQUFRLENBQUN3QixVQUFVN0QsS0FBS0UsSUFBSTVCLFVBQVV3RixRQUFRRCxRQUFRckYsV0FBV3VGLFFBQVEsQ0FBQyxDQUFDLENBQUMsQ0FBQztBQUNuRyxRQUFNRSxzQkFBc0JkLFlBQVllLEtBQUssQ0FBQ0MsZUFBZUEsV0FBV0MsV0FBVyxTQUFTO0FBQzVGLFFBQU1DLFlBQVlBLE1BQU07QUFDdEJoQyxZQUFRLENBQUM7QUFDVEUsV0FBTyxFQUFFckQsR0FBRyxHQUFHQyxHQUFHLEVBQUUsQ0FBQztBQUFBLEVBQ3ZCO0FBRUEsUUFBTW1GLFdBQVdBLENBQUNDLFVBQXdDO0FBQ3hELFFBQUlBLE1BQU1DLFdBQVcsRUFBRztBQUN4Qm5CLGNBQVVvQixVQUFVO0FBQUEsTUFDbEJDLFdBQVdILE1BQU1HO0FBQUFBLE1BQ2pCQyxRQUFRSixNQUFNSztBQUFBQSxNQUNkQyxRQUFRTixNQUFNTztBQUFBQSxNQUNkQyxNQUFNekMsSUFBSXBEO0FBQUFBLE1BQ1Y4RixNQUFNMUMsSUFBSW5EO0FBQUFBLElBQ1o7QUFDQW9GLFVBQU1VLGNBQWNDLG9CQUFvQlgsTUFBTUcsU0FBUztBQUFBLEVBQ3pEO0FBRUEsUUFBTVMsVUFBVUEsQ0FBQ1osVUFBd0M7QUFDdkQsVUFBTWEsT0FBTy9CLFVBQVVvQjtBQUN2QixRQUFJLENBQUNXLFFBQVFBLEtBQUtWLGNBQWNILE1BQU1HLFVBQVc7QUFDakRuQyxXQUFPO0FBQUEsTUFDTHJELEdBQUdrRyxLQUFLTCxPQUFPUixNQUFNSyxVQUFVUSxLQUFLVDtBQUFBQSxNQUNwQ3hGLEdBQUdpRyxLQUFLSixPQUFPVCxNQUFNTyxVQUFVTSxLQUFLUDtBQUFBQSxJQUN0QyxDQUFDO0FBQUEsRUFDSDtBQUVBLFFBQU1RLFVBQVVBLENBQUNkLFVBQXdDO0FBQ3ZELFFBQUksQ0FBQ2xCLFVBQVVvQixXQUFXcEIsVUFBVW9CLFFBQVFDLGNBQWNILE1BQU1HLFVBQVc7QUFDM0VyQixjQUFVb0IsVUFBVTtBQUNwQkYsVUFBTVUsY0FBY0ssd0JBQXdCZixNQUFNRyxTQUFTO0FBQUEsRUFDN0Q7QUFFQSxRQUFNYSw4QkFBOEJBLENBQUNoQixVQUFxQztBQUN4RSxRQUFJQSxNQUFNQyxXQUFXLEVBQUc7QUFDeEJsQixnQ0FBNEJtQixVQUFVO0FBQUEsTUFDcENDLFdBQVdILE1BQU1HO0FBQUFBLE1BQ2pCQyxRQUFRSixNQUFNSztBQUFBQSxNQUNkQyxRQUFRTixNQUFNTztBQUFBQSxNQUNkQyxNQUFNdkMsMkJBQTJCdEQ7QUFBQUEsTUFDakM4RixNQUFNeEMsMkJBQTJCckQ7QUFBQUEsSUFDbkM7QUFDQW9GLFVBQU1VLGNBQWNDLG9CQUFvQlgsTUFBTUcsU0FBUztBQUFBLEVBQ3pEO0FBRUEsUUFBTWMseUJBQXlCQSxDQUFDakIsVUFBcUM7QUFDbkUsVUFBTWEsT0FBTzlCLDRCQUE0Qm1CO0FBQ3pDLFFBQUksQ0FBQ1csUUFBUUEsS0FBS1YsY0FBY0gsTUFBTUcsVUFBVztBQUNqRGpDLGtDQUE4QjtBQUFBLE1BQzVCdkQsR0FBR2tHLEtBQUtMLE9BQU9SLE1BQU1LLFVBQVVRLEtBQUtUO0FBQUFBLE1BQ3BDeEYsR0FBR2lHLEtBQUtKLE9BQU9ULE1BQU1PLFVBQVVNLEtBQUtQO0FBQUFBLElBQ3RDLENBQUM7QUFBQSxFQUNIO0FBRUEsUUFBTVksNkJBQTZCQSxDQUFDbEIsVUFBcUM7QUFDdkUsUUFBSSxDQUFDakIsNEJBQTRCbUIsV0FBV25CLDRCQUE0Qm1CLFFBQVFDLGNBQWNILE1BQU1HLFVBQVc7QUFDL0dwQixnQ0FBNEJtQixVQUFVO0FBQ3RDRixVQUFNVSxjQUFjSyx3QkFBd0JmLE1BQU1HLFNBQVM7QUFBQSxFQUM3RDtBQUVBLFFBQU1nQixnQ0FBZ0NBLENBQUNuQixVQUFxQztBQUMxRUEsVUFBTW9CLGdCQUFnQjtBQUN0QnBDLGtDQUE4QmtCLFVBQVU7QUFBQSxNQUN0Q0UsUUFBUUosTUFBTUs7QUFBQUEsTUFDZEMsUUFBUU4sTUFBTU87QUFBQUEsTUFDZHpGLE9BQU9xRCx1QkFBdUJyRDtBQUFBQSxNQUM5QkMsUUFBUW9ELHVCQUF1QnBEO0FBQUFBLElBQ2pDO0FBQ0FpRixVQUFNVSxjQUFjQyxvQkFBb0JYLE1BQU1HLFNBQVM7QUFBQSxFQUN6RDtBQUVBLFFBQU1rQiwrQkFBK0JBLENBQUNyQixVQUFxQztBQUN6RSxVQUFNc0IsU0FBU3RDLDhCQUE4QmtCO0FBQzdDLFFBQUksQ0FBQ29CLE9BQVE7QUFDYnRCLFVBQU1vQixnQkFBZ0I7QUFDdEJoRDtBQUFBQSxNQUNFL0M7QUFBQUEsUUFDRTtBQUFBLFVBQ0VQLE9BQU93RyxPQUFPeEcsUUFBUWtGLE1BQU1LLFVBQVVpQixPQUFPbEI7QUFBQUEsVUFDN0NyRixRQUFRdUcsT0FBT3ZHLFNBQVNpRixNQUFNTyxVQUFVZSxPQUFPaEI7QUFBQUEsUUFDakQ7QUFBQSxRQUNBbkY7QUFBQUEsUUFDQUM7QUFBQUEsTUFDRjtBQUFBLElBQ0Y7QUFBQSxFQUNGO0FBRUEsUUFBTW1HLCtCQUErQkEsQ0FBQ3ZCLFVBQXFDO0FBQ3pFQSxVQUFNb0IsZ0JBQWdCO0FBQ3RCcEIsVUFBTVUsY0FBY0ssd0JBQXdCZixNQUFNRyxTQUFTO0FBQzNEbkIsa0NBQThCa0IsVUFBVTtBQUFBLEVBQzFDO0FBRUEsUUFBTXNCLGtCQUFrQkEsQ0FBQzNGLFNBQWdDO0FBQ3ZELFVBQU1DLElBQUlzRCxjQUFjYztBQUN4QjFCLG9CQUFnQixDQUFDMEIsWUFBWTtBQUMzQixVQUFJQSxRQUFRUCxLQUFLLENBQUM3QyxZQUFXQSxRQUFPakIsU0FBU0EsSUFBSSxHQUFHO0FBQ2xELGVBQU9xRSxRQUFRdUIsSUFBSSxDQUFDM0UsWUFBWUEsUUFBT2pCLFNBQVNBLE9BQU8sRUFBRSxHQUFHaUIsU0FBUWhCLEVBQUUsSUFBSWdCLE9BQU87QUFBQSxNQUNuRjtBQUNBLGFBQU8sQ0FBQyxHQUFHb0QsU0FBU3RFLGtCQUFrQkMsTUFBTUMsQ0FBQyxDQUFDO0FBQUEsSUFDaEQsQ0FBQztBQUFBLEVBQ0g7QUFFQSxRQUFNNEYsbUJBQW1CQSxDQUFDN0YsU0FBZ0M7QUFDeEQyQyxvQkFBZ0IsQ0FBQzBCLFlBQVlBLFFBQVF5QixPQUFPLENBQUM3RSxZQUFXQSxRQUFPakIsU0FBU0EsSUFBSSxDQUFDO0FBQUEsRUFDL0U7QUFFQSxRQUFNK0Ysb0JBQW9CQSxDQUFDL0YsTUFBNkJnRyxVQUF3QztBQUM5RnJELG9CQUFnQixDQUFDMEIsWUFBWUEsUUFBUXVCLElBQUksQ0FBQzNFLFlBQVlBLFFBQU9qQixTQUFTQSxPQUFPLEVBQUUsR0FBR2lCLFNBQVEsR0FBRytFLE1BQU0sSUFBSS9FLE9BQU8sQ0FBQztBQUFBLEVBQ2pIO0FBRUEsUUFBTWdGLDBCQUEwQkEsQ0FBQ2pHLFNBQWdDO0FBQy9ELFVBQU1DLElBQUlzRCxjQUFjYztBQUN4QjBCLHNCQUFrQi9GLE1BQU0sRUFBRUMsRUFBRSxDQUFDO0FBQUEsRUFDL0I7QUFFQSxRQUFNaUcsdUJBQXVCQSxDQUFDbEcsTUFBNkJtRSxVQUFxQztBQUM5RixVQUFNZ0MsZ0JBQWdCekQsYUFBYTBELEtBQUssQ0FBQ25GLFlBQVdBLFFBQU9qQixTQUFTQSxJQUFJO0FBQ3hFLFFBQUksQ0FBQ21HLGNBQWU7QUFDcEJGLDRCQUF3QmpHLElBQUk7QUFDNUJvRCxtQkFBZWlCLFVBQVU7QUFBQSxNQUN2QnJFO0FBQUFBLE1BQ0F1RSxRQUFRSixNQUFNSztBQUFBQSxNQUNkQyxRQUFRTixNQUFNTztBQUFBQSxNQUNkMkIsT0FBT0YsY0FBY3JIO0FBQUFBLE1BQ3JCd0gsT0FBT0gsY0FBY3BIO0FBQUFBLElBQ3ZCO0FBQ0FvRixVQUFNVSxjQUFjQyxvQkFBb0JYLE1BQU1HLFNBQVM7QUFBQSxFQUN6RDtBQUVBLFFBQU1pQyxrQkFBa0JBLENBQUNwQyxVQUFxQztBQUM1RCxVQUFNYSxPQUFPNUIsZUFBZWlCO0FBQzVCLFFBQUksQ0FBQ1csS0FBTTtBQUNYZSxzQkFBa0JmLEtBQUtoRixNQUFNO0FBQUEsTUFDM0JsQixHQUFHa0csS0FBS3FCLFFBQVFsQyxNQUFNSyxVQUFVUSxLQUFLVDtBQUFBQSxNQUNyQ3hGLEdBQUdpRyxLQUFLc0IsUUFBUW5DLE1BQU1PLFVBQVVNLEtBQUtQO0FBQUFBLElBQ3ZDLENBQUM7QUFBQSxFQUNIO0FBRUEsUUFBTStCLHNCQUFzQkEsQ0FBQ3JDLFVBQXFDO0FBQ2hFQSxVQUFNVSxjQUFjSyx3QkFBd0JmLE1BQU1HLFNBQVM7QUFDM0RsQixtQkFBZWlCLFVBQVU7QUFBQSxFQUMzQjtBQUVBLFFBQU1vQyx5QkFBeUJBLENBQUN6RyxNQUE2Qm1FLFVBQXFDO0FBQ2hHLFVBQU1nQyxnQkFBZ0J6RCxhQUFhMEQsS0FBSyxDQUFDbkYsWUFBV0EsUUFBT2pCLFNBQVNBLElBQUk7QUFDeEUsUUFBSSxDQUFDbUcsY0FBZTtBQUNwQmhDLFVBQU1vQixnQkFBZ0I7QUFDdEJVLDRCQUF3QmpHLElBQUk7QUFDNUJxRCxxQkFBaUJnQixVQUFVO0FBQUEsTUFDekJyRTtBQUFBQSxNQUNBdUUsUUFBUUosTUFBTUs7QUFBQUEsTUFDZEMsUUFBUU4sTUFBTU87QUFBQUEsTUFDZHpGLE9BQU9rSCxjQUFjbEg7QUFBQUEsTUFDckJDLFFBQVFpSCxjQUFjakg7QUFBQUEsSUFDeEI7QUFDQWlGLFVBQU1VLGNBQWNDLG9CQUFvQlgsTUFBTUcsU0FBUztBQUFBLEVBQ3pEO0FBRUEsUUFBTW9DLHdCQUF3QkEsQ0FBQ3ZDLFVBQXFDO0FBQ2xFLFVBQU1zQixTQUFTcEMsaUJBQWlCZ0I7QUFDaEMsUUFBSSxDQUFDb0IsT0FBUTtBQUNidEIsVUFBTW9CLGdCQUFnQjtBQUN0QlE7QUFBQUEsTUFDRU4sT0FBT3pGO0FBQUFBLE1BQ1BSO0FBQUFBLFFBQ0U7QUFBQSxVQUNFUCxPQUFPd0csT0FBT3hHLFFBQVFrRixNQUFNSyxVQUFVaUIsT0FBT2xCO0FBQUFBLFVBQzdDckYsUUFBUXVHLE9BQU92RyxTQUFTaUYsTUFBTU8sVUFBVWUsT0FBT2hCO0FBQUFBLFFBQ2pEO0FBQUEsUUFDQXRGO0FBQUFBLFFBQ0FDO0FBQUFBLE1BQ0Y7QUFBQSxJQUNGO0FBQUEsRUFDRjtBQUVBLFFBQU11SCx3QkFBd0JBLENBQUN4QyxVQUFxQztBQUNsRUEsVUFBTW9CLGdCQUFnQjtBQUN0QnBCLFVBQU1VLGNBQWNLLHdCQUF3QmYsTUFBTUcsU0FBUztBQUMzRGpCLHFCQUFpQmdCLFVBQVU7QUFBQSxFQUM3QjtBQUVBLFFBQU11QywrQkFBK0IsT0FBTzNGLFlBQWdDO0FBQzFFLFVBQU00RixPQUFPNUYsUUFBT2YsTUFBTTRHLEtBQUs7QUFDL0IsUUFBSSxDQUFDRCxRQUFRNUYsUUFBT2QsZUFBZSxVQUFXO0FBQzlDLFVBQU00RyxRQUFRckksa0JBQWtCdUMsUUFBT2pCLElBQUk7QUFDM0MrRixzQkFBa0I5RSxRQUFPakIsTUFBTSxFQUFFRSxPQUFPLElBQUlDLFlBQVksVUFBVSxDQUFDO0FBQ25FLFVBQU1tQixVQUFVO0FBQUEsTUFDZCxJQUFJeUYsS0FBSztBQUFBLE1BQ1QsUUFBUUYsSUFBSTtBQUFBLE1BQ1o7QUFBQSxJQUFpQyxFQUNqQ0csS0FBSyxJQUFJO0FBQ1gsUUFBSTtBQUNGLFlBQU1wRixzQkFBc0JOLE9BQU87QUFDbkN5RSx3QkFBa0I5RSxRQUFPakIsTUFBTSxFQUFFRyxZQUFZLE9BQU8sQ0FBQztBQUFBLElBQ3ZELFFBQVE7QUFDTjRGLHdCQUFrQjlFLFFBQU9qQixNQUFNLEVBQUVHLFlBQVksUUFBUSxDQUFDO0FBQUEsSUFDeEQ7QUFBQSxFQUNGO0FBRUEsUUFBTThHLG1CQUFtQixPQUFPOUMsVUFBc0M7QUFDcEVBLFVBQU0rQyxlQUFlO0FBQ3JCLFVBQU1MLE9BQU9oRSxlQUFlaUUsS0FBSztBQUNqQyxVQUFNSyxPQUFPckosa0JBQWtCc0ksS0FBSyxDQUFDZ0IsU0FBU0EsS0FBSzlJLE9BQU9rRSxZQUFZO0FBQ3RFLFFBQUksQ0FBQ3FFLFFBQVEsQ0FBQ00sUUFBUTdELHFCQUFxQmUsUUFBUztBQUNwRGYseUJBQXFCZSxVQUFVO0FBRS9CLFVBQU0vRixLQUFLbUMsbUJBQW1CO0FBQzlCcUMsc0JBQWtCLEVBQUU7QUFDcEJFLG1CQUFlLENBQUNxQixZQUFZLENBQUMsR0FBR0EsU0FBUyxFQUFFL0YsSUFBSStJLFFBQVFGLEtBQUs3SSxJQUFJdUksTUFBTTdDLFFBQVEsVUFBVSxDQUFDLENBQUM7QUFFMUYsVUFBTTFDLFVBQVU7QUFBQSxNQUNkO0FBQUEsTUFDQSxNQUFNNkYsS0FBS0csSUFBSSxPQUFPSCxLQUFLSSxFQUFFO0FBQUEsTUFDN0IsUUFBUUosS0FBS25ELE1BQU07QUFBQSxNQUNuQixVQUFVbUQsS0FBS0ssS0FBSztBQUFBLE1BQ3BCLFFBQVFYLElBQUk7QUFBQSxNQUNaO0FBQUEsSUFBNkIsRUFDN0JHLEtBQUssSUFBSTtBQUVYLFFBQUk7QUFDRixZQUFNeEYsU0FBUyxNQUFNSSxzQkFBc0JOLE9BQU87QUFDbEQsWUFBTUksV0FBV0gsdUJBQXVCQyxNQUFNO0FBQzlDd0I7QUFBQUEsUUFBZSxDQUFDcUIsWUFDZEEsUUFBUXVCO0FBQUFBLFVBQUksQ0FBQ3dCLFNBQ1hBLEtBQUs5SSxPQUFPQSxLQUNSO0FBQUEsWUFDQSxHQUFHOEk7QUFBQUEsWUFDSHBELFFBQVF0QyxXQUFXLFNBQVM7QUFBQSxZQUM1QkE7QUFBQUEsVUFDRixJQUNFMEY7QUFBQUEsUUFDTjtBQUFBLE1BQ0Y7QUFBQSxJQUNGLFNBQVM1RyxPQUFPO0FBQ2R3QztBQUFBQSxRQUFlLENBQUNxQixZQUNkQSxRQUFRdUI7QUFBQUEsVUFBSSxDQUFDd0IsU0FDWEEsS0FBSzlJLE9BQU9BLEtBQ1IsRUFBRSxHQUFHOEksTUFBTXBELFFBQVEsU0FBU3RDLFVBQVVsQixpQkFBaUJpSCxRQUFRakgsTUFBTWMsVUFBVW9HLE9BQU9sSCxLQUFLLEVBQUUsSUFDN0Y0RztBQUFBQSxRQUNOO0FBQUEsTUFDRjtBQUFBLElBQ0YsVUFBQztBQUNDOUQsMkJBQXFCZSxVQUFVO0FBQUEsSUFDakM7QUFBQSxFQUNGO0FBRUEsU0FDRSx1QkFBQyxhQUFRLFdBQVUsa0JBQWlCLGNBQVcsU0FDN0M7QUFBQSwyQkFBQyxZQUFPLFdBQVUsZUFDaEI7QUFBQSw2QkFBQyxTQUNDO0FBQUEsK0JBQUMsVUFBSyx3QkFBTjtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQWM7QUFBQSxRQUNkLHVCQUFDLFFBQUcscUJBQUo7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUFTO0FBQUEsV0FGWDtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBR0E7QUFBQSxNQUNBLHVCQUFDLFdBQVEsZUFBWSxRQUFPLE1BQU0sTUFBbEM7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQUFxQztBQUFBLFNBTHZDO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0FNQTtBQUFBLElBRUEsdUJBQUMsYUFBUSxXQUFVLDZCQUE0QixjQUFXLFVBQ3hEO0FBQUEsNkJBQUMsU0FDQztBQUFBLCtCQUFDLFVBQUssNEJBQU47QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUFrQjtBQUFBLFFBQ2xCLHVCQUFDLFlBQU8scUJBQVI7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUFhO0FBQUEsV0FGZjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBR0E7QUFBQSxNQUNBLHVCQUFDLFFBQ0M7QUFBQSwrQkFBQyxTQUNDO0FBQUEsaUNBQUMsUUFBRyxrQkFBSjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUFNO0FBQUEsVUFDTix1QkFBQyxRQUFJcEcsc0JBQVkwSixVQUFqQjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUF3QjtBQUFBLGFBRjFCO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFHQTtBQUFBLFFBQ0EsdUJBQUMsU0FDQztBQUFBLGlDQUFDLFFBQUcsa0JBQUo7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBTTtBQUFBLFVBQ04sdUJBQUMsUUFBSTdKLDRCQUFrQjZKLFVBQXZCO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQThCO0FBQUEsYUFGaEM7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUdBO0FBQUEsUUFDQSx1QkFBQyxTQUNDO0FBQUEsaUNBQUMsUUFBRyxtQkFBSjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUFPO0FBQUEsVUFDUCx1QkFBQyxRQUFJN0osNEJBQWtCLENBQUMsR0FBR2tHLFVBQTNCO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQWtDO0FBQUEsYUFGcEM7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUdBO0FBQUEsV0FaRjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBYUE7QUFBQSxNQUNBLHVCQUFDLFlBQU8sTUFBSyxVQUFTLGNBQVcsV0FBVSxTQUFTLE1BQU1qQywwQkFBMEIsSUFBSSxHQUN0RjtBQUFBLCtCQUFDLFdBQVEsZUFBWSxRQUFPLE1BQU0sTUFBbEM7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUFxQztBQUFBLFFBQ3JDLHVCQUFDLFVBQUsscUJBQU47QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUFXO0FBQUEsV0FGYjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBR0E7QUFBQSxTQXRCRjtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBdUJBO0FBQUEsSUFFQ0QsMkJBQ0MsdUJBQUMsU0FBSSxXQUFVLGdDQUNiO0FBQUEsTUFBQztBQUFBO0FBQUEsUUFDQyxXQUFVO0FBQUEsUUFDVixNQUFLO0FBQUEsUUFDTCxjQUFXO0FBQUEsUUFDWCxjQUFXO0FBQUEsUUFDWCxPQUFPO0FBQUEsVUFDTDhGLFdBQVcsYUFBYXhGLDJCQUEyQnRELENBQUMsT0FBT3NELDJCQUEyQnJELENBQUM7QUFBQSxVQUN2RkUsT0FBTyxHQUFHcUQsdUJBQXVCckQsS0FBSztBQUFBLFVBQ3RDQyxRQUFRLEdBQUdvRCx1QkFBdUJwRCxNQUFNO0FBQUEsUUFDMUM7QUFBQSxRQUVBO0FBQUE7QUFBQSxZQUFDO0FBQUE7QUFBQSxjQUNDLFdBQVU7QUFBQSxjQUNWLGNBQVc7QUFBQSxjQUNYLGVBQWVpRztBQUFBQSxjQUNmLGVBQWVDO0FBQUFBLGNBQ2YsYUFBYUM7QUFBQUEsY0FDYixpQkFBaUJBO0FBQUFBLGNBRWpCO0FBQUEsdUNBQUMsU0FDQztBQUFBLHlDQUFDLFVBQUssK0JBQU47QUFBQTtBQUFBO0FBQUE7QUFBQSx5QkFBcUI7QUFBQSxrQkFDckIsdUJBQUMsWUFBTyxzQkFBUjtBQUFBO0FBQUE7QUFBQTtBQUFBLHlCQUFjO0FBQUEscUJBRmhCO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBR0E7QUFBQSxnQkFDQSx1QkFBQyxTQUFJLFdBQVUsd0JBQ2I7QUFBQSx5Q0FBQyxRQUFLLGVBQVksUUFBTyxNQUFNLE1BQS9CO0FBQUE7QUFBQTtBQUFBO0FBQUEseUJBQWtDO0FBQUEsa0JBQ2xDLHVCQUFDLFlBQU8sTUFBSyxVQUFTLGNBQVcsU0FBUSxlQUFlLENBQUNsQixVQUFVQSxNQUFNb0IsZ0JBQWdCLEdBQUcsU0FBUzNCLFNBQ25HLGlDQUFDLFdBQVEsZUFBWSxRQUFPLE1BQU0sTUFBbEM7QUFBQTtBQUFBO0FBQUE7QUFBQSx5QkFBcUMsS0FEdkM7QUFBQTtBQUFBO0FBQUE7QUFBQSx5QkFFQTtBQUFBLGtCQUNBLHVCQUFDLFlBQVFoRTtBQUFBQSx5QkFBS2lJLE1BQU03RixPQUFPLEdBQUc7QUFBQSxvQkFBRTtBQUFBLHVCQUFoQztBQUFBO0FBQUE7QUFBQTtBQUFBLHlCQUFpQztBQUFBLGtCQUNqQyx1QkFBQyxZQUFPLE1BQUssVUFBUyxjQUFXLFNBQVEsZUFBZSxDQUFDbUMsVUFBVUEsTUFBTW9CLGdCQUFnQixHQUFHLFNBQVMvQixRQUNuRyxpQ0FBQyxVQUFPLGVBQVksUUFBTyxNQUFNLE1BQWpDO0FBQUE7QUFBQTtBQUFBO0FBQUEseUJBQW9DLEtBRHRDO0FBQUE7QUFBQTtBQUFBO0FBQUEseUJBRUE7QUFBQSxrQkFDQSx1QkFBQyxZQUFPLE1BQUssVUFBUyxjQUFXLFNBQVEsZUFBZSxDQUFDVyxVQUFVQSxNQUFNb0IsZ0JBQWdCLEdBQUcsU0FBU3RCLFdBQ25HLGlDQUFDLGFBQVUsZUFBWSxRQUFPLE1BQU0sTUFBcEM7QUFBQTtBQUFBO0FBQUE7QUFBQSx5QkFBdUMsS0FEekM7QUFBQTtBQUFBO0FBQUE7QUFBQSx5QkFFQTtBQUFBLGtCQUNBLHVCQUFDLFlBQU8sTUFBSyxVQUFTLGNBQVcsWUFBVyxlQUFlLENBQUNFLFVBQVVBLE1BQU1vQixnQkFBZ0IsR0FBRyxTQUFTLE1BQU14RCwwQkFBMEIsS0FBSyxHQUMzSSxpQ0FBQyxLQUFFLGVBQVksUUFBTyxNQUFNLE1BQTVCO0FBQUE7QUFBQTtBQUFBO0FBQUEseUJBQStCLEtBRGpDO0FBQUE7QUFBQTtBQUFBO0FBQUEseUJBRUE7QUFBQSxxQkFkRjtBQUFBO0FBQUE7QUFBQTtBQUFBLHVCQWVBO0FBQUE7QUFBQTtBQUFBLFlBM0JGO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxVQTRCQTtBQUFBLFVBQ0EsdUJBQUMsU0FBSSxXQUFVLDhCQUNiO0FBQUE7QUFBQSxjQUFDO0FBQUE7QUFBQSxnQkFDQyxXQUFVO0FBQUEsZ0JBQ1YsY0FBVztBQUFBLGdCQUNYLGVBQWVtQztBQUFBQSxnQkFDZixlQUFlYTtBQUFBQSxnQkFDZixhQUFhRTtBQUFBQSxnQkFDYixpQkFBaUJBO0FBQUFBLGdCQUVqQjtBQUFBLGtCQUFDO0FBQUE7QUFBQSxvQkFDQyxXQUFVO0FBQUEsb0JBQ1YsT0FBTyxFQUFFMkMsV0FBVyxhQUFhMUYsSUFBSXBELENBQUMsT0FBT29ELElBQUluRCxDQUFDLGFBQWFpRCxJQUFJLElBQUk7QUFBQSxvQkFFdkUsaUNBQUMscUJBQWtCLGVBQW5CO0FBQUE7QUFBQTtBQUFBO0FBQUEsMkJBQTRDO0FBQUE7QUFBQSxrQkFKOUM7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLGdCQUtBO0FBQUE7QUFBQSxjQWJGO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxZQWNBO0FBQUEsWUFDQSx1QkFBQyxTQUFJLFdBQVUsMkJBQ2I7QUFBQSxxQ0FBQyxxQkFBRDtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUFnQjtBQUFBLGNBQ2hCO0FBQUEsZ0JBQUM7QUFBQTtBQUFBLGtCQUNDO0FBQUEsa0JBQ0Esb0JBQW9CUztBQUFBQSxrQkFDcEIsVUFBVXdFO0FBQUFBLGtCQUNWLFdBQVdwRDtBQUFBQSxrQkFDWDtBQUFBLGtCQUNBLHdCQUF3QmY7QUFBQUE7QUFBQUEsZ0JBTjFCO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxjQU00QztBQUFBLGlCQVI5QztBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQVVBO0FBQUEsZUExQkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkEyQkE7QUFBQSxVQUNBO0FBQUEsWUFBQztBQUFBO0FBQUEsY0FDQyxNQUFLO0FBQUEsY0FDTCxXQUFVO0FBQUEsY0FDVixjQUFXO0FBQUEsY0FDWCxlQUFld0M7QUFBQUEsY0FDZixlQUFlRTtBQUFBQSxjQUNmLGFBQWFFO0FBQUFBLGNBQ2IsaUJBQWlCQTtBQUFBQTtBQUFBQSxZQVBuQjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsVUFPZ0Q7QUFBQTtBQUFBO0FBQUEsTUEzRWxEO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxJQTZFQSxLQTlFRjtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBK0VBLElBQ0U7QUFBQSxJQUVKLHVCQUFDLGFBQVEsV0FBVSxvQkFBbUIsY0FBVyxRQUMvQztBQUFBLDZCQUFDLFlBQ0M7QUFBQSwrQkFBQyxTQUNDO0FBQUEsaUNBQUMsVUFBSywyQkFBTjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUFpQjtBQUFBLFVBQ2pCLHVCQUFDLFlBQU8sb0JBQVI7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBWTtBQUFBLGFBRmQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUdBO0FBQUEsUUFDQSx1QkFBQyxZQUFPLE1BQUssVUFBUyxjQUFXLFlBQVcsU0FBUyxNQUFNQyxnQkFBZ0IsUUFBUSxHQUFFLG1CQUFyRjtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBRUE7QUFBQSxXQVBGO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFRQTtBQUFBLE1BQ0EsdUJBQUMsU0FBSSxXQUFVLGtCQUNaM0gscUJBQVc0SDtBQUFBQSxRQUFJLENBQUNrQyxVQUNmLHVCQUFDLGFBQVEsV0FBVSxjQUFhLGdCQUFjQSxNQUFNQyxnQkFDbEQ7QUFBQSxpQ0FBQyxTQUNDO0FBQUEsbUNBQUMsVUFBTUQsZ0JBQU1FLFlBQWI7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFBc0I7QUFBQSxZQUN0Qix1QkFBQyxZQUFRRixnQkFBTWYsU0FBZjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUFxQjtBQUFBLGVBRnZCO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBR0E7QUFBQSxVQUNBLHVCQUFDLE9BQUU7QUFBQSxtQ0FBQyxPQUFFLGtCQUFIO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBQUs7QUFBQSxZQUFLZSxNQUFNRztBQUFBQSxlQUFuQjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUF3QjtBQUFBLFVBQ3hCLHVCQUFDLE9BQUU7QUFBQSxtQ0FBQyxPQUFFLGtCQUFIO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBQUs7QUFBQSxZQUFLSCxNQUFNSTtBQUFBQSxlQUFuQjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUE0QjtBQUFBLFVBQzVCLHVCQUFDLE9BQUU7QUFBQSxtQ0FBQyxPQUFFLGtCQUFIO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBQUs7QUFBQSxZQUFLSixNQUFNSztBQUFBQSxlQUFuQjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUF3QjtBQUFBLGFBUCtDTCxNQUFNeEosSUFBL0U7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQVFBO0FBQUEsTUFDRCxLQVhIO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFZQTtBQUFBLE1BQ0EsdUJBQUMsU0FBSSxXQUFVLHlCQUF3QixjQUFXLFNBQ2hEO0FBQUEsK0JBQUMsWUFDQztBQUFBLGlDQUFDLFNBQ0M7QUFBQSxtQ0FBQyxVQUFLLGlDQUFOO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBQXVCO0FBQUEsWUFDdkIsdUJBQUMsWUFBTyxxQkFBUjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUFhO0FBQUEsZUFGZjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUdBO0FBQUEsVUFDQSx1QkFBQyxZQUFPLE1BQUssVUFBUyxjQUFXLGFBQVksU0FBUyxNQUFNcUgsZ0JBQWdCLFVBQVUsR0FBRSxvQkFBeEY7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFFQTtBQUFBLGFBUEY7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQVFBO0FBQUEsUUFDQSx1QkFBQyxTQUFJLFdBQVUsZ0JBQ1o1SCwrQkFBcUI2SDtBQUFBQSxVQUFJLENBQUN3QixTQUN6Qix1QkFBQyxhQUFRLFdBQVcsMEJBQTBCQSxLQUFLZ0IsSUFBSSxJQUFJLGdCQUFjaEIsS0FBS0MsUUFDNUU7QUFBQSxtQ0FBQyxVQUFNRCxlQUFLaUIsY0FBWjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUF1QjtBQUFBLFlBQ3ZCLHVCQUFDLFlBQVFqQjtBQUFBQSxtQkFBS2tCO0FBQUFBLGNBQVM7QUFBQSxjQUFJbEIsS0FBS3BEO0FBQUFBLGlCQUFoQztBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUF1QztBQUFBLFlBQ3ZDLHVCQUFDLE9BQUU7QUFBQSxxQ0FBQyxPQUFFLG9CQUFIO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQU87QUFBQSxjQUFLb0QsS0FBS21CO0FBQUFBLGlCQUFwQjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUEwQjtBQUFBLFlBQzFCLHVCQUFDLE9BQUU7QUFBQSxxQ0FBQyxPQUFFLG9CQUFIO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQU87QUFBQSxjQUFLbkIsS0FBS29CO0FBQUFBLGlCQUFwQjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUE4QjtBQUFBLGVBSjJEcEIsS0FBSzlJLElBQWhHO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBS0E7QUFBQSxRQUNELEtBUkg7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQVNBO0FBQUEsV0FuQkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQW9CQTtBQUFBLFNBM0NGO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0E0Q0E7QUFBQSxJQUVDb0UsYUFBYWlGLFNBQ1osdUJBQUMsU0FBSSxXQUFVLDhCQUE2QixjQUFXLFlBQ3BEakYsdUJBQWFrRDtBQUFBQSxNQUFJLENBQUMzRSxZQUNqQjtBQUFBLFFBQUM7QUFBQTtBQUFBLFVBQ0MsY0FBY0EsUUFBT2pCO0FBQUFBLFVBQ3JCLE9BQU9pQixRQUFPZjtBQUFBQSxVQUVkLGdCQUFnQixNQUFNK0Ysd0JBQXdCaEYsUUFBT2pCLElBQUk7QUFBQSxVQUN6RCxTQUFTLE1BQU02RixpQkFBaUI1RSxRQUFPakIsSUFBSTtBQUFBLFVBQzNDLFdBQVd3RztBQUFBQSxVQUNYLFlBQVlEO0FBQUFBLFVBQ1osYUFBYSxDQUFDcEMsVUFBVStCLHFCQUFxQmpGLFFBQU9qQixNQUFNbUUsS0FBSztBQUFBLFVBQy9ELGVBQWUsQ0FBQ1YsVUFBVXNDLGtCQUFrQjlFLFFBQU9qQixNQUFNLEVBQUVFLE9BQU91RCxPQUFPdEQsWUFBWSxPQUFPLENBQUM7QUFBQSxVQUM3RixhQUFhd0c7QUFBQUEsVUFDYixjQUFjRDtBQUFBQSxVQUNkLGVBQWUsQ0FBQ3ZDLFVBQVVzQyx1QkFBdUJ4RixRQUFPakIsTUFBTW1FLEtBQUs7QUFBQSxVQUNuRSxxQkFBcUIsTUFBTXlDLDZCQUE2QjNGLE9BQU07QUFBQSxVQUM5RCxZQUFZQSxRQUFPZDtBQUFBQSxVQUNuQixNQUFNLEVBQUVsQixPQUFPZ0MsUUFBT2hDLE9BQU9DLFFBQVErQixRQUFPL0IsT0FBTztBQUFBLFVBQ25ELFdBQVcsYUFBYStCLFFBQU9uQyxDQUFDLE9BQU9tQyxRQUFPbEMsQ0FBQztBQUFBLFVBQy9DLFFBQVFrQyxRQUFPaEI7QUFBQUE7QUFBQUEsUUFkVmdCLFFBQU9qQjtBQUFBQSxRQUhkO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsTUFpQm1CO0FBQUEsSUFFcEIsS0FyQkg7QUFBQTtBQUFBO0FBQUE7QUFBQSxXQXNCQSxJQUNFO0FBQUEsSUFFSix1QkFBQyxTQUFJLFdBQVUsbUJBQ1puQyxxQkFBVytIO0FBQUFBLE1BQUksQ0FBQzZDLE9BQU9DLFVBQ3RCLHVCQUFDLFNBQUksV0FBVSxtQkFDYjtBQUFBLCtCQUFDLGFBQ0M7QUFBQSxpQ0FBQyxZQUFRRCxnQkFBTUUsU0FBZjtBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQUFxQjtBQUFBLFVBQ3JCLHVCQUFDLE9BQUdGLGdCQUFNRyxXQUFWO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQWtCO0FBQUEsYUFGcEI7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUdBO0FBQUEsUUFDQ0YsUUFBUTdLLFdBQVc4SixTQUFTLElBQUksdUJBQUMsVUFBSyxlQUFZLFFBQU8sa0JBQXpCO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBOEIsSUFBVTtBQUFBLFdBTHJDYyxNQUFNbkssSUFBNUM7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQU1BO0FBQUEsSUFDRCxLQVRIO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0FVQTtBQUFBLElBRUEsdUJBQUMsU0FBSSxXQUFVLG1CQUNaVixzQkFBWWdJO0FBQUFBLE1BQUksQ0FBQ2lELFdBQ2hCLHVCQUFDLGFBQ0M7QUFBQSwrQkFBQyxZQUFRQSxpQkFBT0YsU0FBaEI7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUFzQjtBQUFBLFFBQ3RCLHVCQUFDLE9BQUdFLGlCQUFPcEYsU0FBWDtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQWlCO0FBQUEsV0FGTG9GLE9BQU9GLE9BQXJCO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFHQTtBQUFBLElBQ0QsS0FOSDtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBT0E7QUFBQSxPQWhORjtBQUFBO0FBQUE7QUFBQTtBQUFBLFNBaU5BO0FBRUo7QUFBQzlHLEdBcmZlRixjQUFZO0FBQUEsS0FBWkE7QUF1ZmhCLFNBQVNtSCxvQkFBb0I7QUFBQSxFQUMzQkM7QUFBQUEsRUFDQTdJO0FBQUFBLEVBQ0E4STtBQUFBQSxFQUNBQztBQUFBQSxFQUNBQztBQUFBQSxFQUNBQztBQUFBQSxFQUNBQztBQUFBQSxFQUNBQztBQUFBQSxFQUNBQztBQUFBQSxFQUNBQztBQUFBQSxFQUNBQztBQUFBQSxFQUNBQztBQUFBQSxFQUNBdEo7QUFBQUEsRUFDQVY7QUFBQUEsRUFDQW1JO0FBQUFBLEVBQ0E4QjtBQWtCRixHQUFHO0FBQ0QsUUFBTTNDLFFBQVFySSxrQkFBa0JxSyxZQUFZO0FBRTVDLFNBQ0U7QUFBQSxJQUFDO0FBQUE7QUFBQSxNQUNDLFdBQVU7QUFBQSxNQUNWLE1BQUs7QUFBQSxNQUNMLGNBQVloQztBQUFBQSxNQUNaLE9BQU8sRUFBRWEsV0FBVzhCLFFBQVF6SyxPQUFPLEdBQUdRLEtBQUtSLEtBQUssTUFBTUMsUUFBUSxHQUFHTyxLQUFLUCxNQUFNLEtBQUs7QUFBQSxNQUNqRixlQUFlOEo7QUFBQUEsTUFFZjtBQUFBO0FBQUEsVUFBQztBQUFBO0FBQUEsWUFDQyxXQUFVO0FBQUEsWUFDVixjQUFZLEtBQUtqQyxLQUFLO0FBQUEsWUFDdEIsZUFBZXFDO0FBQUFBLFlBQ2YsZUFBZUQ7QUFBQUEsWUFDZixhQUFhRDtBQUFBQSxZQUNiLGlCQUFpQkE7QUFBQUEsWUFFakI7QUFBQSxxQ0FBQyxTQUNDO0FBQUEsdUNBQUMsVUFBSyw0QkFBTjtBQUFBO0FBQUE7QUFBQTtBQUFBLHVCQUFrQjtBQUFBLGdCQUNsQix1QkFBQyxZQUFRbkMsbUJBQVQ7QUFBQTtBQUFBO0FBQUE7QUFBQSx1QkFBZTtBQUFBLG1CQUZqQjtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUdBO0FBQUEsY0FDQSx1QkFBQyxZQUFPLE1BQUssVUFBUyxjQUFXLFlBQVcsZUFBZSxDQUFDNUMsVUFBVUEsTUFBTW9CLGdCQUFnQixHQUFHLFNBQVMwRCxTQUN0RyxpQ0FBQyxLQUFFLGVBQVksUUFBTyxNQUFNLE1BQTVCO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQStCLEtBRGpDO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBRUE7QUFBQTtBQUFBO0FBQUEsVUFkRjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsUUFlQTtBQUFBLFFBQ0NGLGlCQUFpQixXQUNoQix1QkFBQyxTQUFJLFdBQVUscUJBQ1ovSyxxQkFBVzRIO0FBQUFBLFVBQUksQ0FBQ2tDLFVBQ2YsdUJBQUMsYUFBUSxXQUFVLHFCQUFvQixnQkFBY0EsTUFBTUMsZ0JBQ3pEO0FBQUEsbUNBQUMsVUFBTUQsZ0JBQU1FLFlBQWI7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFBc0I7QUFBQSxZQUN0Qix1QkFBQyxZQUFRRixnQkFBTWYsU0FBZjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUFxQjtBQUFBLFlBQ3JCLHVCQUFDLFFBQ0M7QUFBQSxxQ0FBQyxTQUNDO0FBQUEsdUNBQUMsUUFBRyxvQkFBSjtBQUFBO0FBQUE7QUFBQTtBQUFBLHVCQUFRO0FBQUEsZ0JBQ1IsdUJBQUMsUUFBSWUsZ0JBQU1HLFFBQVg7QUFBQTtBQUFBO0FBQUE7QUFBQSx1QkFBZ0I7QUFBQSxtQkFGbEI7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFHQTtBQUFBLGNBQ0EsdUJBQUMsU0FDQztBQUFBLHVDQUFDLFFBQUcsb0JBQUo7QUFBQTtBQUFBO0FBQUE7QUFBQSx1QkFBUTtBQUFBLGdCQUNSLHVCQUFDLFFBQUlILGdCQUFNSSxZQUFYO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBQW9CO0FBQUEsbUJBRnRCO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBR0E7QUFBQSxjQUNBLHVCQUFDLFNBQ0M7QUFBQSx1Q0FBQyxRQUFHLG9CQUFKO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBQVE7QUFBQSxnQkFDUix1QkFBQyxRQUFJSixnQkFBTUssUUFBWDtBQUFBO0FBQUE7QUFBQTtBQUFBLHVCQUFnQjtBQUFBLG1CQUZsQjtBQUFBO0FBQUE7QUFBQTtBQUFBLHFCQUdBO0FBQUEsaUJBWkY7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFhQTtBQUFBLGVBaEI4RUwsTUFBTXhKLElBQXRGO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBaUJBO0FBQUEsUUFDRCxLQXBCSDtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBcUJBLElBRUEsdUJBQUMsU0FBSSxXQUFVLHFCQUNaUCwrQkFBcUI2SDtBQUFBQSxVQUFJLENBQUN3QixTQUN6Qix1QkFBQyxhQUFRLFdBQVcsa0NBQWtDQSxLQUFLZ0IsSUFBSSxJQUFJLGdCQUFjaEIsS0FBS0MsUUFDcEY7QUFBQSxtQ0FBQyxVQUFNRCxlQUFLaUIsY0FBWjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUF1QjtBQUFBLFlBQ3ZCLHVCQUFDLFlBQVFqQjtBQUFBQSxtQkFBS2tCO0FBQUFBLGNBQVM7QUFBQSxjQUFJbEIsS0FBS3BEO0FBQUFBLGlCQUFoQztBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUF1QztBQUFBLFlBQ3ZDLHVCQUFDLFFBQ0M7QUFBQSxxQ0FBQyxTQUNDO0FBQUEsdUNBQUMsUUFBRyxvQkFBSjtBQUFBO0FBQUE7QUFBQTtBQUFBLHVCQUFRO0FBQUEsZ0JBQ1IsdUJBQUMsUUFBSW9ELGVBQUttQixTQUFWO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBQWdCO0FBQUEsbUJBRmxCO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBR0E7QUFBQSxjQUNBLHVCQUFDLFNBQ0M7QUFBQSx1Q0FBQyxRQUFHLHNCQUFKO0FBQUE7QUFBQTtBQUFBO0FBQUEsdUJBQVU7QUFBQSxnQkFDVix1QkFBQyxRQUFJbkIsZUFBS29CLGFBQVY7QUFBQTtBQUFBO0FBQUE7QUFBQSx1QkFBb0I7QUFBQSxtQkFGdEI7QUFBQTtBQUFBO0FBQUE7QUFBQSxxQkFHQTtBQUFBLGlCQVJGO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBU0E7QUFBQSxlQVppR3BCLEtBQUs5SSxJQUF4RztBQUFBO0FBQUE7QUFBQTtBQUFBLGlCQWFBO0FBQUEsUUFDRCxLQWhCSDtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBaUJBO0FBQUEsUUFFRjtBQUFBLFVBQUM7QUFBQTtBQUFBLFlBQ0M7QUFBQSxZQUNBO0FBQUEsWUFDQSxVQUFVbUw7QUFBQUEsWUFDVixRQUFRdEo7QUFBQUEsWUFDUjtBQUFBO0FBQUEsVUFMRjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsUUFLZTtBQUFBLFFBRWY7QUFBQSxVQUFDO0FBQUE7QUFBQSxZQUNDLE1BQUs7QUFBQSxZQUNMLFdBQVU7QUFBQSxZQUNWLGNBQVksS0FBSzRHLEtBQUs7QUFBQSxZQUN0QixlQUFleUM7QUFBQUEsWUFDZixlQUFlRDtBQUFBQSxZQUNmLGFBQWFEO0FBQUFBLFlBQ2IsaUJBQWlCQTtBQUFBQTtBQUFBQSxVQVBuQjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsUUFPK0I7QUFBQTtBQUFBO0FBQUEsSUFoRmpDO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxFQWtGQTtBQUVKO0FBQUNLLE1BMUhRYjtBQTRIVCxTQUFTYyxvQkFBb0I7QUFBQSxFQUMzQjFKO0FBQUFBLEVBQ0FtSjtBQUFBQSxFQUNBUTtBQUFBQSxFQUNBN0Y7QUFBQUEsRUFDQStDO0FBT0YsR0FBRztBQUNELFFBQU0rQyxjQUFpRDtBQUFBLElBQ3JEQyxNQUFNO0FBQUEsSUFDTjFKLFNBQVM7QUFBQSxJQUNURSxNQUFNO0FBQUEsSUFDTkMsT0FBTztBQUFBLEVBQ1Q7QUFFQSxRQUFNd0osU0FBU0EsQ0FBQzdGLFVBQXNDO0FBQ3BEQSxVQUFNK0MsZUFBZTtBQUNyQjJDLGFBQVM7QUFBQSxFQUNYO0FBRUEsU0FDRSx1QkFBQyxVQUFLLFdBQVUsMkNBQTBDLFVBQVVHLFFBQ2xFO0FBQUEsMkJBQUMsV0FDQztBQUFBLDZCQUFDLFVBQU1qRDtBQUFBQTtBQUFBQSxRQUFNO0FBQUEsV0FBYjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBQW1CO0FBQUEsTUFDbkI7QUFBQSxRQUFDO0FBQUE7QUFBQSxVQUNDLGNBQVksR0FBR0EsS0FBSztBQUFBLFVBQ3BCLE9BQU83RztBQUFBQSxVQUNQLFVBQVUsQ0FBQ2lFLFVBQVVrRixjQUFjbEYsTUFBTVUsY0FBY3BCLEtBQUs7QUFBQSxVQUM1RCxhQUFZO0FBQUE7QUFBQSxRQUpkO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxNQUkwQztBQUFBLFNBTjVDO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0FRQTtBQUFBLElBQ0EsdUJBQUMsU0FBSSxXQUFVLHdCQUNiO0FBQUEsNkJBQUMsVUFBSyxXQUFXLDhCQUE4Qk8sTUFBTSxJQUFLOEYsc0JBQVk5RixNQUFNLEtBQTVFO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFBOEU7QUFBQSxNQUM5RSx1QkFBQyxZQUFPLE1BQUssVUFBUyxjQUFZLEtBQUsrQyxLQUFLLE1BQU0sVUFBVSxDQUFDN0csTUFBTTRHLEtBQUssS0FBSzlDLFdBQVcsV0FDdEY7QUFBQSwrQkFBQyxrQkFBZSxlQUFZLFFBQU8sTUFBTSxNQUF6QztBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQTRDO0FBQUE7QUFBQSxXQUQ5QztBQUFBO0FBQUE7QUFBQTtBQUFBLGFBR0E7QUFBQSxTQUxGO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0FNQTtBQUFBLE9BaEJGO0FBQUE7QUFBQTtBQUFBO0FBQUEsU0FpQkE7QUFFSjtBQUFDaUcsTUE3Q1FMO0FBK0NULFNBQVNNLGtCQUFrQixFQUFFbkgsWUFBdUQsR0FBRztBQUNyRixTQUNFLHVCQUFDLFNBQUksV0FBVSxvQkFDYjtBQUFBLDJCQUFDLFNBQUksZUFBWSxRQUFPLFdBQVUsc0JBQXFCLFNBQVEsZUFBYyxxQkFBb0IsUUFDL0Y7QUFBQSw2QkFBQyxVQUNDO0FBQUEsK0JBQUMsWUFBTyxJQUFHLGNBQWEsY0FBYSxLQUFJLGFBQVksS0FBSSxRQUFPLFFBQU8sTUFBSyxLQUFJLE1BQUssS0FDbkYsaUNBQUMsVUFBSyxHQUFFLHNCQUFSO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBMEIsS0FENUI7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUVBO0FBQUEsUUFDQSx1QkFBQyxZQUFPLElBQUcsaUJBQWdCLGNBQWEsS0FBSSxhQUFZLEtBQUksUUFBTyxRQUFPLE1BQUssS0FBSSxNQUFLLEtBQ3RGLGlDQUFDLFVBQUssR0FBRSxzQkFBUjtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQTBCLEtBRDVCO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFFQTtBQUFBLFFBQ0EsdUJBQUMsWUFBTyxJQUFHLGVBQWMsY0FBYSxLQUFJLGFBQVksS0FBSSxRQUFPLFFBQU8sTUFBSyxLQUFJLE1BQUssS0FDcEYsaUNBQUMsVUFBSyxHQUFFLHNCQUFSO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBMEIsS0FENUI7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUVBO0FBQUEsV0FURjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBVUE7QUFBQSxNQUNDakYsa0JBQWtCOEg7QUFBQUEsUUFBSSxDQUFDdUIsU0FDdEI7QUFBQSxVQUFDO0FBQUE7QUFBQSxZQUNDLFdBQVcsUUFBUUEsS0FBS2lCLElBQUk7QUFBQSxZQUM1QixnQkFBY2pCLEtBQUs3STtBQUFBQSxZQUNuQixHQUFHNkksS0FBS2dEO0FBQUFBLFlBRVIsV0FBVyxjQUFjaEQsS0FBS2lCLElBQUk7QUFBQTtBQUFBLFVBRDdCakIsS0FBSzdJO0FBQUFBLFVBSlo7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxRQUt3QztBQUFBLE1BRXpDO0FBQUEsU0FwQkg7QUFBQTtBQUFBO0FBQUE7QUFBQSxXQXFCQTtBQUFBLElBRUEsdUJBQUMsU0FBSSxXQUFVLGVBQWMsY0FBVyxVQUNyQ1IsNEJBQWtCOEg7QUFBQUEsTUFBSSxDQUFDdUIsU0FDdEIsdUJBQUMsYUFBUSxXQUFXLG1CQUFtQkEsS0FBS2lCLElBQUksSUFDOUM7QUFBQSwrQkFBQyxVQUFNakI7QUFBQUEsZUFBS0c7QUFBQUEsVUFBSztBQUFBLFVBQVFILEtBQUtJO0FBQUFBLGFBQTlCO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBaUM7QUFBQSxRQUNqQyx1QkFBQyxZQUFRSixlQUFLbkQsVUFBZDtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQXFCO0FBQUEsUUFDckIsdUJBQUMsT0FBR21ELGVBQUtLLFNBQVQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUFlO0FBQUEsV0FId0NMLEtBQUs3SSxJQUE5RDtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBSUE7QUFBQSxJQUNELEtBUEg7QUFBQTtBQUFBO0FBQUE7QUFBQSxXQVFBO0FBQUEsSUFFQSx1QkFBQyxTQUFJLFdBQVUsY0FDWkwsc0JBQVkySDtBQUFBQSxNQUFJLENBQUN3RSxVQUNoQix1QkFBQyxhQUFRLFdBQVcsb0JBQW9CQSxNQUFNQyxJQUFJLElBQ2hEO0FBQUEsK0JBQUMsWUFBUUQsZ0JBQU1FLFFBQWY7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUFvQjtBQUFBLFFBQ3BCLHVCQUFDLFVBQU1GLGdCQUFNRyxRQUFiO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBa0I7QUFBQSxXQUZ1Q0gsTUFBTTlMLElBQWpFO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFHQTtBQUFBLElBQ0QsS0FOSDtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBT0E7QUFBQSxJQUVDeUUsWUFBWTRFLFNBQ1gsdUJBQUMsU0FBSSxXQUFVLGlDQUFnQyxjQUFXLFlBQ3ZENUUsc0JBQVk2QyxJQUFJLENBQUM3QixlQUFlO0FBQy9CLFlBQU15RyxXQUFXak0sb0JBQW9Cd0YsV0FBV3NELE1BQU0sS0FBSyxFQUFFN0ksTUFBTSxPQUFPQyxLQUFLLE1BQU07QUFDckYsYUFDRTtBQUFBLFFBQUM7QUFBQTtBQUFBLFVBQ0MsV0FBVywyQ0FBMkNzRixXQUFXQyxNQUFNO0FBQUEsVUFDdkUsMkJBQXlCRCxXQUFXc0Q7QUFBQUEsVUFFcEMsT0FBT21EO0FBQUFBLFVBRVA7QUFBQSxtQ0FBQyxTQUFJLFdBQVUscUNBQ2I7QUFBQSxxQ0FBQyxVQUFLLG9CQUFOO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQVU7QUFBQSxjQUNWLHVCQUFDLFlBQVFwSyxpQ0FBdUIyRCxXQUFXQyxNQUFNLEtBQWpEO0FBQUE7QUFBQTtBQUFBO0FBQUEscUJBQW1EO0FBQUEsaUJBRnJEO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBR0E7QUFBQSxZQUNBLHVCQUFDLE9BQUdELHFCQUFXOEMsUUFBZjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUFvQjtBQUFBO0FBQUE7QUFBQSxRQVBmOUMsV0FBV3pGO0FBQUFBLFFBSGxCO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsTUFXQTtBQUFBLElBRUosQ0FBQyxLQWpCSDtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBa0JBLElBQ0U7QUFBQSxPQS9ETjtBQUFBO0FBQUE7QUFBQTtBQUFBLFNBZ0VBO0FBRUo7QUFBQ21NLE1BcEVRUDtBQXNFVCxTQUFTUSw0QkFBNEI7QUFBQSxFQUNuQ2xJO0FBQUFBLEVBQ0FtSTtBQUFBQSxFQUNBQztBQUFBQSxFQUNBZjtBQUFBQSxFQUNBaEg7QUFBQUEsRUFDQWdJO0FBUUYsR0FBRztBQUNELFNBQ0UsdUJBQUMsVUFBSyxXQUFVLGlDQUFnQyxVQUM5QztBQUFBLDJCQUFDLFlBQ0M7QUFBQSw2QkFBQyxVQUFLLDZCQUFOO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFBbUI7QUFBQSxNQUNuQix1QkFBQyxZQUFPLHVCQUFSO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFBZTtBQUFBLFNBRmpCO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0FHQTtBQUFBLElBQ0EsdUJBQUMsV0FDQztBQUFBLDZCQUFDLFVBQUssbUJBQU47QUFBQTtBQUFBO0FBQUE7QUFBQSxhQUFTO0FBQUEsTUFDVDtBQUFBLFFBQUM7QUFBQTtBQUFBLFVBQ0MsY0FBVztBQUFBLFVBQ1gsT0FBT3JJO0FBQUFBLFVBQ1AsVUFBVSxDQUFDMkIsVUFBVXlHLG1CQUFtQnpHLE1BQU1VLGNBQWNwQixLQUFLO0FBQUEsVUFFaEUzRiw0QkFBa0I4SDtBQUFBQSxZQUFJLENBQUN1QixTQUN0Qix1QkFBQyxZQUFxQixPQUFPQSxLQUFLN0ksSUFDL0I2STtBQUFBQSxtQkFBS0c7QUFBQUEsY0FBSztBQUFBLGNBQVFILEtBQUtJO0FBQUFBLGNBQUc7QUFBQSxjQUFJSixLQUFLbkQ7QUFBQUEsaUJBRHpCbUQsS0FBSzdJLElBQWxCO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBRUE7QUFBQSxVQUNEO0FBQUE7QUFBQSxRQVRIO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxNQVVBO0FBQUEsU0FaRjtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBYUE7QUFBQSxJQUNBLHVCQUFDLFdBQ0M7QUFBQSw2QkFBQyxVQUFLLGtCQUFOO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFBUTtBQUFBLE1BQ1I7QUFBQSxRQUFDO0FBQUE7QUFBQSxVQUNDLGNBQVc7QUFBQSxVQUNYLE9BQU91RTtBQUFBQSxVQUNQLFVBQVUsQ0FBQ3NCLFVBQVUwRyx1QkFBdUIxRyxNQUFNVSxjQUFjcEIsS0FBSztBQUFBLFVBQ3JFLGFBQVk7QUFBQTtBQUFBLFFBSmQ7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLE1BSXFDO0FBQUEsU0FOdkM7QUFBQTtBQUFBO0FBQUE7QUFBQSxXQVFBO0FBQUEsSUFDQSx1QkFBQyxZQUFPLE1BQUssVUFBUyxjQUFXLFlBQVcsVUFBVSxDQUFDWixlQUFlaUUsS0FBSyxLQUFLNkQsV0FDOUU7QUFBQSw2QkFBQyxrQkFBZSxlQUFZLFFBQU8sTUFBTSxNQUF6QztBQUFBO0FBQUE7QUFBQTtBQUFBLGFBQTRDO0FBQUEsTUFDNUMsdUJBQUMsVUFBSyx3QkFBTjtBQUFBO0FBQUE7QUFBQTtBQUFBLGFBQWM7QUFBQSxTQUZoQjtBQUFBO0FBQUE7QUFBQTtBQUFBLFdBR0E7QUFBQSxPQS9CRjtBQUFBO0FBQUE7QUFBQTtBQUFBLFNBZ0NBO0FBRUo7QUFBQ0csTUFsRFFKO0FBb0RULFNBQVNLLGtCQUFrQjtBQUN6QixTQUNFLHVCQUFDLFdBQU0sV0FBVSw0Q0FDZjtBQUFBLDJCQUFDLFlBQ0M7QUFBQSw2QkFBQyxVQUFLLDRCQUFOO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFBa0I7QUFBQSxNQUNsQix1QkFBQyxZQUFPLHNCQUFSO0FBQUE7QUFBQTtBQUFBO0FBQUEsYUFBYztBQUFBLFNBRmhCO0FBQUE7QUFBQTtBQUFBO0FBQUEsV0FHQTtBQUFBLElBQ0NqTixrQkFBa0I4SDtBQUFBQSxNQUFJLENBQUN1QixTQUN0Qix1QkFBQyxhQUFRLFdBQVcsMEJBQTBCQSxLQUFLaUIsSUFBSSxJQUNyRDtBQUFBLCtCQUFDLFNBQ0M7QUFBQSxpQ0FBQyxVQUFNakI7QUFBQUEsaUJBQUtHO0FBQUFBLFlBQUs7QUFBQSxZQUFFO0FBQUEsWUFBSztBQUFBLFlBQUVILEtBQUtJO0FBQUFBLGVBQS9CO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQWtDO0FBQUEsVUFDbEMsdUJBQUMsWUFBUUosZUFBS25ELFVBQWQ7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBcUI7QUFBQSxhQUZ2QjtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBR0E7QUFBQSxRQUNBLHVCQUFDLFFBQ0M7QUFBQSxpQ0FBQyxTQUNDO0FBQUEsbUNBQUMsUUFBRyxrQkFBSjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUFNO0FBQUEsWUFDTix1QkFBQyxRQUFHO0FBQUE7QUFBQSxjQUFJbUQsS0FBSzZEO0FBQUFBLGlCQUFiO0FBQUE7QUFBQTtBQUFBO0FBQUEsbUJBQXNCO0FBQUEsZUFGeEI7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFHQTtBQUFBLFVBQ0EsdUJBQUMsU0FDQztBQUFBLG1DQUFDLFFBQUcsa0JBQUo7QUFBQTtBQUFBO0FBQUE7QUFBQSxtQkFBTTtBQUFBLFlBQ04sdUJBQUMsUUFBRztBQUFBO0FBQUEsY0FBSTdELEtBQUs4RDtBQUFBQSxpQkFBYjtBQUFBO0FBQUE7QUFBQTtBQUFBLG1CQUF1QjtBQUFBLGVBRnpCO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBR0E7QUFBQSxhQVJGO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFTQTtBQUFBLFFBQ0EsdUJBQUMsT0FBRTtBQUFBLGlDQUFDLE9BQUUsa0JBQUg7QUFBQTtBQUFBO0FBQUE7QUFBQSxpQkFBSztBQUFBLFVBQUs5RCxLQUFLK0Q7QUFBQUEsYUFBbEI7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUE0QjtBQUFBLFFBQzVCLHVCQUFDLE9BQUU7QUFBQSxpQ0FBQyxPQUFFLHNCQUFIO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQVM7QUFBQSxVQUFLL0QsS0FBS0s7QUFBQUEsYUFBdEI7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUE0QjtBQUFBLFFBQzVCLHVCQUFDLE9BQUU7QUFBQSxpQ0FBQyxPQUFFLG9CQUFIO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQU87QUFBQSxVQUFLTCxLQUFLb0I7QUFBQUEsYUFBcEI7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUEwQjtBQUFBLFFBQzFCLHVCQUFDLE9BQUU7QUFBQSxpQ0FBQyxPQUFFLG9CQUFIO0FBQUE7QUFBQTtBQUFBO0FBQUEsaUJBQU87QUFBQSxVQUFLcEIsS0FBS3FCO0FBQUFBLGFBQXBCO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFBOEI7QUFBQSxXQWxCZ0NyQixLQUFLN0ksSUFBckU7QUFBQTtBQUFBO0FBQUE7QUFBQSxhQW1CQTtBQUFBLElBQ0Q7QUFBQSxPQTFCSDtBQUFBO0FBQUE7QUFBQTtBQUFBLFNBMkJBO0FBRUo7QUFBQzZNLE1BL0JRSjtBQUFlLElBQUFLLElBQUF6QixLQUFBTSxLQUFBUSxLQUFBSyxLQUFBSztBQUFBLGFBQUFDLElBQUE7QUFBQSxhQUFBekIsS0FBQTtBQUFBLGFBQUFNLEtBQUE7QUFBQSxhQUFBUSxLQUFBO0FBQUEsYUFBQUssS0FBQTtBQUFBLGFBQUFLLEtBQUEiLCJuYW1lcyI6WyJ1c2VSZWYiLCJ1c2VTdGF0ZSIsIk1vdmUiLCJOZXR3b3JrIiwiUm90YXRlQ2N3IiwiU2VuZEhvcml6b250YWwiLCJYIiwiWm9vbUluIiwiWm9vbU91dCIsInNlbmRDaGF0IiwiZmxvd1NpZ25hbHMiLCJmbG93U3RhZ2VzIiwicmVsYXRpb25zaGlwRWRnZXMiLCJyZWxhdGlvbnNoaXBUaW1lbGluZSIsInNjZW5lQ2FyZHMiLCJzdG9yeUFjdG9ycyIsIk1JTl9aT09NIiwiTUFYX1pPT00iLCJaT09NX1NURVAiLCJERUZBVUxUX1JFTEFUSU9OX0VER0VfSUQiLCJpZCIsInN1Z2dlc3Rpb25Qb3NpdGlvbnMiLCJsZWZ0IiwidG9wIiwic3RvcnlXaW5kb3dUaXRsZXMiLCJzY2VuZXMiLCJ0aW1lbGluZSIsInN0b3J5V2luZG93T2Zmc2V0cyIsIngiLCJ5Iiwic3RvcnlXaW5kb3dEZWZhdWx0U2l6ZSIsIndpZHRoIiwiaGVpZ2h0Iiwic3RvcnlXaW5kb3dNaW5TaXplIiwic3RvcnlXaW5kb3dNYXhTaXplIiwicmVsYXRpb25zaGlwV2luZG93RGVmYXVsdFNpemUiLCJyZWxhdGlvbnNoaXBXaW5kb3dNaW5TaXplIiwicmVsYXRpb25zaGlwV2luZG93TWF4U2l6ZSIsImNsYW1wV2luZG93U2l6ZSIsInNpemUiLCJtaW5TaXplIiwibWF4U2l6ZSIsIk1hdGgiLCJtaW4iLCJtYXgiLCJjcmVhdGVTdG9yeVdpbmRvdyIsImtpbmQiLCJ6IiwiZHJhZnQiLCJzZW5kU3RhdHVzIiwic3VnZ2VzdGlvblN0YXR1c0xhYmVscyIsInNlbmRpbmciLCJxdWV1ZWQiLCJzZW50IiwiZXJyb3IiLCJjcmVhdGVTdWdnZXN0aW9uSWQiLCJjcnlwdG8iLCJyYW5kb21VVUlEIiwiRGF0ZSIsIm5vdyIsImdldEluaXRpYWxTdG9yeVdpbmRvdyIsInN0b3J5V2luZG93IiwiVVJMU2VhcmNoUGFyYW1zIiwid2luZG93IiwibG9jYXRpb24iLCJzZWFyY2giLCJnZXQiLCJkZWZhdWx0U2VuZFBsb3RJbnN0cnVjdGlvbiIsIm1lc3NhZ2UiLCJnZXRJbnN0cnVjdGlvblJlc3BvbnNlIiwicmVzdWx0IiwidW5kZWZpbmVkIiwicmVzcG9uc2UiLCJTdG9yeUZsb3dNYXAiLCJvblNlbmRQbG90SW5zdHJ1Y3Rpb24iLCJfcyIsImlzUmVsYXRpb25zaGlwV2luZG93T3BlbiIsInNldFJlbGF0aW9uc2hpcFdpbmRvd09wZW4iLCJ6b29tIiwic2V0Wm9vbSIsInBhbiIsInNldFBhbiIsInJlbGF0aW9uc2hpcFdpbmRvd1Bvc2l0aW9uIiwic2V0UmVsYXRpb25zaGlwV2luZG93UG9zaXRpb24iLCJyZWxhdGlvbnNoaXBXaW5kb3dTaXplIiwic2V0UmVsYXRpb25zaGlwV2luZG93U2l6ZSIsImFjdGl2ZUVkZ2VJZCIsInNldEFjdGl2ZUVkZ2VJZCIsInN0b3J5V2luZG93cyIsInNldFN0b3J5V2luZG93cyIsImluaXRpYWxXaW5kb3ciLCJzdWdnZXN0aW9uVGV4dCIsInNldFN1Z2dlc3Rpb25UZXh0Iiwic3VnZ2VzdGlvbnMiLCJzZXRTdWdnZXN0aW9ucyIsImRyYWdTdGF0ZSIsInJlbGF0aW9uc2hpcFdpbmRvd0RyYWdTdGF0ZSIsInJlbGF0aW9uc2hpcFdpbmRvd1Jlc2l6ZVN0YXRlIiwic3RvcnlEcmFnU3RhdGUiLCJzdG9yeVJlc2l6ZVN0YXRlIiwic3VnZ2VzdGlvblNlbmRpbmdSZWYiLCJzdG9yeU5leHRaUmVmIiwiem9vbUluIiwidmFsdWUiLCJOdW1iZXIiLCJ0b0ZpeGVkIiwiem9vbU91dCIsImlzU3VnZ2VzdGlvblNlbmRpbmciLCJzb21lIiwic3VnZ2VzdGlvbiIsInN0YXR1cyIsInJlc2V0VmlldyIsInN0YXJ0UGFuIiwiZXZlbnQiLCJidXR0b24iLCJjdXJyZW50IiwicG9pbnRlcklkIiwic3RhcnRYIiwiY2xpZW50WCIsInN0YXJ0WSIsImNsaWVudFkiLCJwYW5YIiwicGFuWSIsImN1cnJlbnRUYXJnZXQiLCJzZXRQb2ludGVyQ2FwdHVyZSIsIm1vdmVQYW4iLCJkcmFnIiwic3RvcFBhbiIsInJlbGVhc2VQb2ludGVyQ2FwdHVyZSIsInN0YXJ0UmVsYXRpb25zaGlwV2luZG93RHJhZyIsIm1vdmVSZWxhdGlvbnNoaXBXaW5kb3ciLCJzdG9wUmVsYXRpb25zaGlwV2luZG93RHJhZyIsInN0YXJ0UmVsYXRpb25zaGlwV2luZG93UmVzaXplIiwic3RvcFByb3BhZ2F0aW9uIiwibW92ZVJlbGF0aW9uc2hpcFdpbmRvd1Jlc2l6ZSIsInJlc2l6ZSIsInN0b3BSZWxhdGlvbnNoaXBXaW5kb3dSZXNpemUiLCJvcGVuU3RvcnlXaW5kb3ciLCJtYXAiLCJjbG9zZVN0b3J5V2luZG93IiwiZmlsdGVyIiwidXBkYXRlU3RvcnlXaW5kb3ciLCJwYXRjaCIsImJyaW5nU3RvcnlXaW5kb3dUb0Zyb250Iiwic3RhcnRTdG9yeVdpbmRvd0RyYWciLCJjdXJyZW50V2luZG93IiwiZmluZCIsImJhc2VYIiwiYmFzZVkiLCJtb3ZlU3RvcnlXaW5kb3ciLCJzdG9wU3RvcnlXaW5kb3dEcmFnIiwic3RhcnRTdG9yeVdpbmRvd1Jlc2l6ZSIsIm1vdmVTdG9yeVdpbmRvd1Jlc2l6ZSIsInN0b3BTdG9yeVdpbmRvd1Jlc2l6ZSIsInN1Ym1pdFN0b3J5V2luZG93SW5zdHJ1Y3Rpb24iLCJ0ZXh0IiwidHJpbSIsInRpdGxlIiwiam9pbiIsInN1Ym1pdFN1Z2dlc3Rpb24iLCJwcmV2ZW50RGVmYXVsdCIsImVkZ2UiLCJpdGVtIiwiZWRnZUlkIiwiZnJvbSIsInRvIiwiZ3VpZGUiLCJFcnJvciIsIlN0cmluZyIsImxlbmd0aCIsInRyYW5zZm9ybSIsInJvdW5kIiwic2NlbmUiLCJyZWxhdGlvbkVkZ2VJZCIsInBsb3RMaW5lIiwiZ29hbCIsImNvbmZsaWN0IiwiaG9vayIsInRvbmUiLCJzY2VuZVRpdGxlIiwicmVsYXRpb24iLCJjYXVzZSIsIm5leHRTaGlmdCIsInN0YWdlIiwiaW5kZXgiLCJsYWJlbCIsInN1bW1hcnkiLCJzaWduYWwiLCJTdG9yeUZ1bmN0aW9uV2luZG93IiwiYWN0aXZlV2luZG93Iiwib25CcmluZ1RvRnJvbnQiLCJvbkNsb3NlIiwib25EcmFnRW5kIiwib25EcmFnTW92ZSIsIm9uRHJhZ1N0YXJ0Iiwib25EcmFmdENoYW5nZSIsIm9uUmVzaXplRW5kIiwib25SZXNpemVNb3ZlIiwib25SZXNpemVTdGFydCIsIm9uU3VibWl0SW5zdHJ1Y3Rpb24iLCJ6SW5kZXgiLCJfYzIiLCJTdG9yeVdpbmRvd0FnZW50Qm94Iiwib25TdWJtaXQiLCJzdGF0dXNMYWJlbCIsImlkbGUiLCJzdWJtaXQiLCJfYzMiLCJSZWxhdGlvbnNoaXBHcmFwaCIsInBhdGhEIiwiYWN0b3IiLCJsYW5lIiwibmFtZSIsInJvbGUiLCJwb3NpdGlvbiIsIl9jNCIsIlJlbGF0aW9uc2hpcFN1Z2dlc3Rpb25QYW5lbCIsImlzU2VuZGluZyIsIm9uQWN0aXZlRWRnZUNoYW5nZSIsIm9uU3VnZ2VzdGlvblRleHRDaGFuZ2UiLCJfYzUiLCJSZWxhdGlvbnNoaXBMb2ciLCJzdHJlbmd0aCIsImZpcnN0U2VlbiIsImV2b2x1dGlvbiIsIl9jNiIsIl9jIl0sImlnbm9yZUxpc3QiOltdLCJzb3VyY2VzIjpbIlN0b3J5Rmxvd01hcC50c3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgdXNlUmVmLCB1c2VTdGF0ZSwgdHlwZSBGb3JtRXZlbnQsIHR5cGUgUG9pbnRlckV2ZW50IH0gZnJvbSBcInJlYWN0XCI7XG5pbXBvcnQgeyBNb3ZlLCBOZXR3b3JrLCBSb3RhdGVDY3csIFNlbmRIb3Jpem9udGFsLCBYLCBab29tSW4sIFpvb21PdXQgfSBmcm9tIFwibHVjaWRlLXJlYWN0XCI7XG5pbXBvcnQgeyBzZW5kQ2hhdCB9IGZyb20gXCIuLi9hcGkvY2xpZW50XCI7XG5pbXBvcnQge1xuICBmbG93U2lnbmFscyxcbiAgZmxvd1N0YWdlcyxcbiAgcmVsYXRpb25zaGlwRWRnZXMsXG4gIHJlbGF0aW9uc2hpcFRpbWVsaW5lLFxuICBzY2VuZUNhcmRzLFxuICBzdG9yeUFjdG9ycyxcbn0gZnJvbSBcIi4uL2RhdGEvc3RvcnlGbG93XCI7XG5cbmNvbnN0IE1JTl9aT09NID0gMC43O1xuY29uc3QgTUFYX1pPT00gPSAxLjg7XG5jb25zdCBaT09NX1NURVAgPSAwLjI7XG5jb25zdCBERUZBVUxUX1JFTEFUSU9OX0VER0VfSUQgPSByZWxhdGlvbnNoaXBFZGdlc1swXT8uaWQgPz8gXCJcIjtcblxuY29uc3Qgc3VnZ2VzdGlvblBvc2l0aW9uczogUmVjb3JkPHN0cmluZywgeyBsZWZ0OiBzdHJpbmc7IHRvcDogc3RyaW5nIH0+ID0ge1xuICBcImhlcm8taGVyb2luZVwiOiB7IGxlZnQ6IFwiNDElXCIsIHRvcDogXCI0MiVcIiB9LFxuICBcImhlcm8tcml2YWxcIjogeyBsZWZ0OiBcIjUxJVwiLCB0b3A6IFwiNTglXCIgfSxcbiAgXCJtZW50b3ItaGVyb1wiOiB7IGxlZnQ6IFwiMTglXCIsIHRvcDogXCI1MCVcIiB9LFxufTtcblxudHlwZSBQYW4gPSB7XG4gIHg6IG51bWJlcjtcbiAgeTogbnVtYmVyO1xufTtcblxudHlwZSBXaW5kb3dTaXplID0ge1xuICB3aWR0aDogbnVtYmVyO1xuICBoZWlnaHQ6IG51bWJlcjtcbn07XG5cbnR5cGUgRHJhZ1N0YXRlID0ge1xuICBwb2ludGVySWQ6IG51bWJlcjtcbiAgc3RhcnRYOiBudW1iZXI7XG4gIHN0YXJ0WTogbnVtYmVyO1xuICBwYW5YOiBudW1iZXI7XG4gIHBhblk6IG51bWJlcjtcbn07XG5cbnR5cGUgU3VnZ2VzdGlvblN0YXR1cyA9IFwic2VuZGluZ1wiIHwgXCJxdWV1ZWRcIiB8IFwic2VudFwiIHwgXCJlcnJvclwiO1xudHlwZSBTdG9yeUZ1bmN0aW9uV2luZG93SWQgPSBcInNjZW5lc1wiIHwgXCJ0aW1lbGluZVwiO1xudHlwZSBTdG9yeVdpbmRvd1N0YXR1cyA9IFwiaWRsZVwiIHwgXCJzZW5kaW5nXCIgfCBcInNlbnRcIiB8IFwiZXJyb3JcIjtcblxudHlwZSBTdG9yeVdpbmRvd0luc3RhbmNlID0ge1xuICBraW5kOiBTdG9yeUZ1bmN0aW9uV2luZG93SWQ7XG4gIHg6IG51bWJlcjtcbiAgeTogbnVtYmVyO1xuICB3aWR0aDogbnVtYmVyO1xuICBoZWlnaHQ6IG51bWJlcjtcbiAgejogbnVtYmVyO1xuICBkcmFmdDogc3RyaW5nO1xuICBzZW5kU3RhdHVzOiBTdG9yeVdpbmRvd1N0YXR1cztcbn07XG5cbmNvbnN0IHN0b3J5V2luZG93VGl0bGVzOiBSZWNvcmQ8U3RvcnlGdW5jdGlvbldpbmRvd0lkLCBzdHJpbmc+ID0ge1xuICBzY2VuZXM6IFwi5Zy65pmv5Y2h54mH56qX5Y+jXCIsXG4gIHRpbWVsaW5lOiBcIuWFs+ezu+aXtumXtOe6v+eql+WPo1wiLFxufTtcblxuY29uc3Qgc3RvcnlXaW5kb3dPZmZzZXRzOiBSZWNvcmQ8U3RvcnlGdW5jdGlvbldpbmRvd0lkLCB7IHg6IG51bWJlcjsgeTogbnVtYmVyIH0+ID0ge1xuICBzY2VuZXM6IHsgeDogMCwgeTogMCB9LFxuICB0aW1lbGluZTogeyB4OiA0MiwgeTogMzQgfSxcbn07XG5cbmNvbnN0IHN0b3J5V2luZG93RGVmYXVsdFNpemU6IFdpbmRvd1NpemUgPSB7IHdpZHRoOiA5ODAsIGhlaWdodDogNTIwIH07XG5jb25zdCBzdG9yeVdpbmRvd01pblNpemU6IFdpbmRvd1NpemUgPSB7IHdpZHRoOiA1NDAsIGhlaWdodDogMzYwIH07XG5jb25zdCBzdG9yeVdpbmRvd01heFNpemU6IFdpbmRvd1NpemUgPSB7IHdpZHRoOiAxMjQwLCBoZWlnaHQ6IDgyMCB9O1xuY29uc3QgcmVsYXRpb25zaGlwV2luZG93RGVmYXVsdFNpemU6IFdpbmRvd1NpemUgPSB7IHdpZHRoOiAxMTIwLCBoZWlnaHQ6IDcyMCB9O1xuY29uc3QgcmVsYXRpb25zaGlwV2luZG93TWluU2l6ZTogV2luZG93U2l6ZSA9IHsgd2lkdGg6IDc2MCwgaGVpZ2h0OiA1MjAgfTtcbmNvbnN0IHJlbGF0aW9uc2hpcFdpbmRvd01heFNpemU6IFdpbmRvd1NpemUgPSB7IHdpZHRoOiAxMzIwLCBoZWlnaHQ6IDg0MCB9O1xuXG5mdW5jdGlvbiBjbGFtcFdpbmRvd1NpemUoc2l6ZTogV2luZG93U2l6ZSwgbWluU2l6ZTogV2luZG93U2l6ZSwgbWF4U2l6ZTogV2luZG93U2l6ZSk6IFdpbmRvd1NpemUge1xuICByZXR1cm4ge1xuICAgIHdpZHRoOiBNYXRoLm1pbihtYXhTaXplLndpZHRoLCBNYXRoLm1heChtaW5TaXplLndpZHRoLCBzaXplLndpZHRoKSksXG4gICAgaGVpZ2h0OiBNYXRoLm1pbihtYXhTaXplLmhlaWdodCwgTWF0aC5tYXgobWluU2l6ZS5oZWlnaHQsIHNpemUuaGVpZ2h0KSksXG4gIH07XG59XG5cbmZ1bmN0aW9uIGNyZWF0ZVN0b3J5V2luZG93KGtpbmQ6IFN0b3J5RnVuY3Rpb25XaW5kb3dJZCwgejogbnVtYmVyKTogU3RvcnlXaW5kb3dJbnN0YW5jZSB7XG4gIHJldHVybiB7XG4gICAga2luZCxcbiAgICB4OiBzdG9yeVdpbmRvd09mZnNldHNba2luZF0ueCxcbiAgICB5OiBzdG9yeVdpbmRvd09mZnNldHNba2luZF0ueSxcbiAgICB3aWR0aDogc3RvcnlXaW5kb3dEZWZhdWx0U2l6ZS53aWR0aCxcbiAgICBoZWlnaHQ6IHN0b3J5V2luZG93RGVmYXVsdFNpemUuaGVpZ2h0LFxuICAgIHosXG4gICAgZHJhZnQ6IFwiXCIsXG4gICAgc2VuZFN0YXR1czogXCJpZGxlXCIsXG4gIH07XG59XG5cbnR5cGUgUmVsYXRpb25zaGlwU3VnZ2VzdGlvbiA9IHtcbiAgaWQ6IHN0cmluZztcbiAgZWRnZUlkOiBzdHJpbmc7XG4gIHRleHQ6IHN0cmluZztcbiAgc3RhdHVzOiBTdWdnZXN0aW9uU3RhdHVzO1xuICByZXNwb25zZT86IHN0cmluZztcbn07XG5cbnR5cGUgUGxvdEluc3RydWN0aW9uUmVzdWx0ID0geyByZXNwb25zZT86IHN0cmluZyB9IHwgdm9pZDtcbnR5cGUgU2VuZFBsb3RJbnN0cnVjdGlvbiA9IChtZXNzYWdlOiBzdHJpbmcpID0+IFByb21pc2U8dW5rbm93bj47XG5cbmNvbnN0IHN1Z2dlc3Rpb25TdGF0dXNMYWJlbHM6IFJlY29yZDxTdWdnZXN0aW9uU3RhdHVzLCBzdHJpbmc+ID0ge1xuICBzZW5kaW5nOiBcIuaPkOS6pOS4rVwiLFxuICBxdWV1ZWQ6IFwi5bey5YWl6ZifXCIsXG4gIHNlbnQ6IFwi5bey5Zue5aSNXCIsXG4gIGVycm9yOiBcIuWksei0pVwiLFxufTtcblxuZnVuY3Rpb24gY3JlYXRlU3VnZ2VzdGlvbklkKCkge1xuICBpZiAodHlwZW9mIGNyeXB0byAhPT0gXCJ1bmRlZmluZWRcIiAmJiBcInJhbmRvbVVVSURcIiBpbiBjcnlwdG8pIHtcbiAgICByZXR1cm4gY3J5cHRvLnJhbmRvbVVVSUQoKTtcbiAgfVxuICByZXR1cm4gYHN1Z2dlc3Rpb24tJHtEYXRlLm5vdygpfWA7XG59XG5cbmZ1bmN0aW9uIGdldEluaXRpYWxTdG9yeVdpbmRvdygpOiBTdG9yeUZ1bmN0aW9uV2luZG93SWQgfCBudWxsIHtcbiAgY29uc3Qgc3RvcnlXaW5kb3cgPSBuZXcgVVJMU2VhcmNoUGFyYW1zKHdpbmRvdy5sb2NhdGlvbi5zZWFyY2gpLmdldChcInN0b3J5V2luZG93XCIpO1xuICBpZiAoc3RvcnlXaW5kb3cgPT09IFwic2NlbmVzXCIgfHwgc3RvcnlXaW5kb3cgPT09IFwidGltZWxpbmVcIikge1xuICAgIHJldHVybiBzdG9yeVdpbmRvdztcbiAgfVxuICByZXR1cm4gbnVsbDtcbn1cblxuYXN5bmMgZnVuY3Rpb24gZGVmYXVsdFNlbmRQbG90SW5zdHJ1Y3Rpb24obWVzc2FnZTogc3RyaW5nKSB7XG4gIHJldHVybiBzZW5kQ2hhdChtZXNzYWdlLCBcInBsb3RcIik7XG59XG5cbmZ1bmN0aW9uIGdldEluc3RydWN0aW9uUmVzcG9uc2UocmVzdWx0OiB1bmtub3duKSB7XG4gIGlmICghcmVzdWx0IHx8IHR5cGVvZiByZXN1bHQgIT09IFwib2JqZWN0XCIgfHwgIShcInJlc3BvbnNlXCIgaW4gcmVzdWx0KSkgcmV0dXJuIHVuZGVmaW5lZDtcbiAgY29uc3QgcmVzcG9uc2UgPSAocmVzdWx0IGFzIHsgcmVzcG9uc2U/OiB1bmtub3duIH0pLnJlc3BvbnNlO1xuICByZXR1cm4gdHlwZW9mIHJlc3BvbnNlID09PSBcInN0cmluZ1wiID8gcmVzcG9uc2UgOiB1bmRlZmluZWQ7XG59XG5cbmV4cG9ydCBmdW5jdGlvbiBTdG9yeUZsb3dNYXAoeyBvblNlbmRQbG90SW5zdHJ1Y3Rpb24gPSBkZWZhdWx0U2VuZFBsb3RJbnN0cnVjdGlvbiB9OiB7IG9uU2VuZFBsb3RJbnN0cnVjdGlvbj86IFNlbmRQbG90SW5zdHJ1Y3Rpb24gfSA9IHt9KSB7XG4gIGNvbnN0IFtpc1JlbGF0aW9uc2hpcFdpbmRvd09wZW4sIHNldFJlbGF0aW9uc2hpcFdpbmRvd09wZW5dID0gdXNlU3RhdGUoXG4gICAgKCkgPT4gbmV3IFVSTFNlYXJjaFBhcmFtcyh3aW5kb3cubG9jYXRpb24uc2VhcmNoKS5nZXQoXCJyZWxhdGlvbnNcIikgPT09IFwib3BlblwiLFxuICApO1xuICBjb25zdCBbem9vbSwgc2V0Wm9vbV0gPSB1c2VTdGF0ZSgxKTtcbiAgY29uc3QgW3Bhbiwgc2V0UGFuXSA9IHVzZVN0YXRlPFBhbj4oeyB4OiAwLCB5OiAwIH0pO1xuICBjb25zdCBbcmVsYXRpb25zaGlwV2luZG93UG9zaXRpb24sIHNldFJlbGF0aW9uc2hpcFdpbmRvd1Bvc2l0aW9uXSA9IHVzZVN0YXRlPFBhbj4oeyB4OiAwLCB5OiAwIH0pO1xuICBjb25zdCBbcmVsYXRpb25zaGlwV2luZG93U2l6ZSwgc2V0UmVsYXRpb25zaGlwV2luZG93U2l6ZV0gPSB1c2VTdGF0ZTxXaW5kb3dTaXplPihyZWxhdGlvbnNoaXBXaW5kb3dEZWZhdWx0U2l6ZSk7XG4gIGNvbnN0IFthY3RpdmVFZGdlSWQsIHNldEFjdGl2ZUVkZ2VJZF0gPSB1c2VTdGF0ZShERUZBVUxUX1JFTEFUSU9OX0VER0VfSUQpO1xuICBjb25zdCBbc3RvcnlXaW5kb3dzLCBzZXRTdG9yeVdpbmRvd3NdID0gdXNlU3RhdGU8U3RvcnlXaW5kb3dJbnN0YW5jZVtdPigoKSA9PiB7XG4gICAgY29uc3QgaW5pdGlhbFdpbmRvdyA9IGdldEluaXRpYWxTdG9yeVdpbmRvdygpO1xuICAgIHJldHVybiBpbml0aWFsV2luZG93ID8gW2NyZWF0ZVN0b3J5V2luZG93KGluaXRpYWxXaW5kb3csIDEpXSA6IFtdO1xuICB9KTtcbiAgY29uc3QgW3N1Z2dlc3Rpb25UZXh0LCBzZXRTdWdnZXN0aW9uVGV4dF0gPSB1c2VTdGF0ZShcIlwiKTtcbiAgY29uc3QgW3N1Z2dlc3Rpb25zLCBzZXRTdWdnZXN0aW9uc10gPSB1c2VTdGF0ZTxSZWxhdGlvbnNoaXBTdWdnZXN0aW9uW10+KFtdKTtcbiAgY29uc3QgZHJhZ1N0YXRlID0gdXNlUmVmPERyYWdTdGF0ZSB8IG51bGw+KG51bGwpO1xuICBjb25zdCByZWxhdGlvbnNoaXBXaW5kb3dEcmFnU3RhdGUgPSB1c2VSZWY8RHJhZ1N0YXRlIHwgbnVsbD4obnVsbCk7XG4gIGNvbnN0IHJlbGF0aW9uc2hpcFdpbmRvd1Jlc2l6ZVN0YXRlID0gdXNlUmVmPHtcbiAgICBzdGFydFg6IG51bWJlcjtcbiAgICBzdGFydFk6IG51bWJlcjtcbiAgICB3aWR0aDogbnVtYmVyO1xuICAgIGhlaWdodDogbnVtYmVyO1xuICB9IHwgbnVsbD4obnVsbCk7XG4gIGNvbnN0IHN0b3J5RHJhZ1N0YXRlID0gdXNlUmVmPHtcbiAgICBraW5kOiBTdG9yeUZ1bmN0aW9uV2luZG93SWQ7XG4gICAgc3RhcnRYOiBudW1iZXI7XG4gICAgc3RhcnRZOiBudW1iZXI7XG4gICAgYmFzZVg6IG51bWJlcjtcbiAgICBiYXNlWTogbnVtYmVyO1xuICB9IHwgbnVsbD4obnVsbCk7XG4gIGNvbnN0IHN0b3J5UmVzaXplU3RhdGUgPSB1c2VSZWY8e1xuICAgIGtpbmQ6IFN0b3J5RnVuY3Rpb25XaW5kb3dJZDtcbiAgICBzdGFydFg6IG51bWJlcjtcbiAgICBzdGFydFk6IG51bWJlcjtcbiAgICB3aWR0aDogbnVtYmVyO1xuICAgIGhlaWdodDogbnVtYmVyO1xuICB9IHwgbnVsbD4obnVsbCk7XG4gIGNvbnN0IHN1Z2dlc3Rpb25TZW5kaW5nUmVmID0gdXNlUmVmKGZhbHNlKTtcbiAgY29uc3Qgc3RvcnlOZXh0WlJlZiA9IHVzZVJlZigyKTtcblxuICBjb25zdCB6b29tSW4gPSAoKSA9PiBzZXRab29tKCh2YWx1ZSkgPT4gTWF0aC5taW4oTUFYX1pPT00sIE51bWJlcigodmFsdWUgKyBaT09NX1NURVApLnRvRml4ZWQoMSkpKSk7XG4gIGNvbnN0IHpvb21PdXQgPSAoKSA9PiBzZXRab29tKCh2YWx1ZSkgPT4gTWF0aC5tYXgoTUlOX1pPT00sIE51bWJlcigodmFsdWUgLSBaT09NX1NURVApLnRvRml4ZWQoMSkpKSk7XG4gIGNvbnN0IGlzU3VnZ2VzdGlvblNlbmRpbmcgPSBzdWdnZXN0aW9ucy5zb21lKChzdWdnZXN0aW9uKSA9PiBzdWdnZXN0aW9uLnN0YXR1cyA9PT0gXCJzZW5kaW5nXCIpO1xuICBjb25zdCByZXNldFZpZXcgPSAoKSA9PiB7XG4gICAgc2V0Wm9vbSgxKTtcbiAgICBzZXRQYW4oeyB4OiAwLCB5OiAwIH0pO1xuICB9O1xuXG4gIGNvbnN0IHN0YXJ0UGFuID0gKGV2ZW50OiBQb2ludGVyRXZlbnQ8SFRNTERpdkVsZW1lbnQ+KSA9PiB7XG4gICAgaWYgKGV2ZW50LmJ1dHRvbiAhPT0gMCkgcmV0dXJuO1xuICAgIGRyYWdTdGF0ZS5jdXJyZW50ID0ge1xuICAgICAgcG9pbnRlcklkOiBldmVudC5wb2ludGVySWQsXG4gICAgICBzdGFydFg6IGV2ZW50LmNsaWVudFgsXG4gICAgICBzdGFydFk6IGV2ZW50LmNsaWVudFksXG4gICAgICBwYW5YOiBwYW4ueCxcbiAgICAgIHBhblk6IHBhbi55LFxuICAgIH07XG4gICAgZXZlbnQuY3VycmVudFRhcmdldC5zZXRQb2ludGVyQ2FwdHVyZT8uKGV2ZW50LnBvaW50ZXJJZCk7XG4gIH07XG5cbiAgY29uc3QgbW92ZVBhbiA9IChldmVudDogUG9pbnRlckV2ZW50PEhUTUxEaXZFbGVtZW50PikgPT4ge1xuICAgIGNvbnN0IGRyYWcgPSBkcmFnU3RhdGUuY3VycmVudDtcbiAgICBpZiAoIWRyYWcgfHwgZHJhZy5wb2ludGVySWQgIT09IGV2ZW50LnBvaW50ZXJJZCkgcmV0dXJuO1xuICAgIHNldFBhbih7XG4gICAgICB4OiBkcmFnLnBhblggKyBldmVudC5jbGllbnRYIC0gZHJhZy5zdGFydFgsXG4gICAgICB5OiBkcmFnLnBhblkgKyBldmVudC5jbGllbnRZIC0gZHJhZy5zdGFydFksXG4gICAgfSk7XG4gIH07XG5cbiAgY29uc3Qgc3RvcFBhbiA9IChldmVudDogUG9pbnRlckV2ZW50PEhUTUxEaXZFbGVtZW50PikgPT4ge1xuICAgIGlmICghZHJhZ1N0YXRlLmN1cnJlbnQgfHwgZHJhZ1N0YXRlLmN1cnJlbnQucG9pbnRlcklkICE9PSBldmVudC5wb2ludGVySWQpIHJldHVybjtcbiAgICBkcmFnU3RhdGUuY3VycmVudCA9IG51bGw7XG4gICAgZXZlbnQuY3VycmVudFRhcmdldC5yZWxlYXNlUG9pbnRlckNhcHR1cmU/LihldmVudC5wb2ludGVySWQpO1xuICB9O1xuXG4gIGNvbnN0IHN0YXJ0UmVsYXRpb25zaGlwV2luZG93RHJhZyA9IChldmVudDogUG9pbnRlckV2ZW50PEhUTUxFbGVtZW50PikgPT4ge1xuICAgIGlmIChldmVudC5idXR0b24gIT09IDApIHJldHVybjtcbiAgICByZWxhdGlvbnNoaXBXaW5kb3dEcmFnU3RhdGUuY3VycmVudCA9IHtcbiAgICAgIHBvaW50ZXJJZDogZXZlbnQucG9pbnRlcklkLFxuICAgICAgc3RhcnRYOiBldmVudC5jbGllbnRYLFxuICAgICAgc3RhcnRZOiBldmVudC5jbGllbnRZLFxuICAgICAgcGFuWDogcmVsYXRpb25zaGlwV2luZG93UG9zaXRpb24ueCxcbiAgICAgIHBhblk6IHJlbGF0aW9uc2hpcFdpbmRvd1Bvc2l0aW9uLnksXG4gICAgfTtcbiAgICBldmVudC5jdXJyZW50VGFyZ2V0LnNldFBvaW50ZXJDYXB0dXJlPy4oZXZlbnQucG9pbnRlcklkKTtcbiAgfTtcblxuICBjb25zdCBtb3ZlUmVsYXRpb25zaGlwV2luZG93ID0gKGV2ZW50OiBQb2ludGVyRXZlbnQ8SFRNTEVsZW1lbnQ+KSA9PiB7XG4gICAgY29uc3QgZHJhZyA9IHJlbGF0aW9uc2hpcFdpbmRvd0RyYWdTdGF0ZS5jdXJyZW50O1xuICAgIGlmICghZHJhZyB8fCBkcmFnLnBvaW50ZXJJZCAhPT0gZXZlbnQucG9pbnRlcklkKSByZXR1cm47XG4gICAgc2V0UmVsYXRpb25zaGlwV2luZG93UG9zaXRpb24oe1xuICAgICAgeDogZHJhZy5wYW5YICsgZXZlbnQuY2xpZW50WCAtIGRyYWcuc3RhcnRYLFxuICAgICAgeTogZHJhZy5wYW5ZICsgZXZlbnQuY2xpZW50WSAtIGRyYWcuc3RhcnRZLFxuICAgIH0pO1xuICB9O1xuXG4gIGNvbnN0IHN0b3BSZWxhdGlvbnNoaXBXaW5kb3dEcmFnID0gKGV2ZW50OiBQb2ludGVyRXZlbnQ8SFRNTEVsZW1lbnQ+KSA9PiB7XG4gICAgaWYgKCFyZWxhdGlvbnNoaXBXaW5kb3dEcmFnU3RhdGUuY3VycmVudCB8fCByZWxhdGlvbnNoaXBXaW5kb3dEcmFnU3RhdGUuY3VycmVudC5wb2ludGVySWQgIT09IGV2ZW50LnBvaW50ZXJJZCkgcmV0dXJuO1xuICAgIHJlbGF0aW9uc2hpcFdpbmRvd0RyYWdTdGF0ZS5jdXJyZW50ID0gbnVsbDtcbiAgICBldmVudC5jdXJyZW50VGFyZ2V0LnJlbGVhc2VQb2ludGVyQ2FwdHVyZT8uKGV2ZW50LnBvaW50ZXJJZCk7XG4gIH07XG5cbiAgY29uc3Qgc3RhcnRSZWxhdGlvbnNoaXBXaW5kb3dSZXNpemUgPSAoZXZlbnQ6IFBvaW50ZXJFdmVudDxIVE1MRWxlbWVudD4pID0+IHtcbiAgICBldmVudC5zdG9wUHJvcGFnYXRpb24oKTtcbiAgICByZWxhdGlvbnNoaXBXaW5kb3dSZXNpemVTdGF0ZS5jdXJyZW50ID0ge1xuICAgICAgc3RhcnRYOiBldmVudC5jbGllbnRYLFxuICAgICAgc3RhcnRZOiBldmVudC5jbGllbnRZLFxuICAgICAgd2lkdGg6IHJlbGF0aW9uc2hpcFdpbmRvd1NpemUud2lkdGgsXG4gICAgICBoZWlnaHQ6IHJlbGF0aW9uc2hpcFdpbmRvd1NpemUuaGVpZ2h0LFxuICAgIH07XG4gICAgZXZlbnQuY3VycmVudFRhcmdldC5zZXRQb2ludGVyQ2FwdHVyZT8uKGV2ZW50LnBvaW50ZXJJZCk7XG4gIH07XG5cbiAgY29uc3QgbW92ZVJlbGF0aW9uc2hpcFdpbmRvd1Jlc2l6ZSA9IChldmVudDogUG9pbnRlckV2ZW50PEhUTUxFbGVtZW50PikgPT4ge1xuICAgIGNvbnN0IHJlc2l6ZSA9IHJlbGF0aW9uc2hpcFdpbmRvd1Jlc2l6ZVN0YXRlLmN1cnJlbnQ7XG4gICAgaWYgKCFyZXNpemUpIHJldHVybjtcbiAgICBldmVudC5zdG9wUHJvcGFnYXRpb24oKTtcbiAgICBzZXRSZWxhdGlvbnNoaXBXaW5kb3dTaXplKFxuICAgICAgY2xhbXBXaW5kb3dTaXplKFxuICAgICAgICB7XG4gICAgICAgICAgd2lkdGg6IHJlc2l6ZS53aWR0aCArIGV2ZW50LmNsaWVudFggLSByZXNpemUuc3RhcnRYLFxuICAgICAgICAgIGhlaWdodDogcmVzaXplLmhlaWdodCArIGV2ZW50LmNsaWVudFkgLSByZXNpemUuc3RhcnRZLFxuICAgICAgICB9LFxuICAgICAgICByZWxhdGlvbnNoaXBXaW5kb3dNaW5TaXplLFxuICAgICAgICByZWxhdGlvbnNoaXBXaW5kb3dNYXhTaXplLFxuICAgICAgKSxcbiAgICApO1xuICB9O1xuXG4gIGNvbnN0IHN0b3BSZWxhdGlvbnNoaXBXaW5kb3dSZXNpemUgPSAoZXZlbnQ6IFBvaW50ZXJFdmVudDxIVE1MRWxlbWVudD4pID0+IHtcbiAgICBldmVudC5zdG9wUHJvcGFnYXRpb24oKTtcbiAgICBldmVudC5jdXJyZW50VGFyZ2V0LnJlbGVhc2VQb2ludGVyQ2FwdHVyZT8uKGV2ZW50LnBvaW50ZXJJZCk7XG4gICAgcmVsYXRpb25zaGlwV2luZG93UmVzaXplU3RhdGUuY3VycmVudCA9IG51bGw7XG4gIH07XG5cbiAgY29uc3Qgb3BlblN0b3J5V2luZG93ID0gKGtpbmQ6IFN0b3J5RnVuY3Rpb25XaW5kb3dJZCkgPT4ge1xuICAgIGNvbnN0IHogPSBzdG9yeU5leHRaUmVmLmN1cnJlbnQrKztcbiAgICBzZXRTdG9yeVdpbmRvd3MoKGN1cnJlbnQpID0+IHtcbiAgICAgIGlmIChjdXJyZW50LnNvbWUoKHdpbmRvdykgPT4gd2luZG93LmtpbmQgPT09IGtpbmQpKSB7XG4gICAgICAgIHJldHVybiBjdXJyZW50Lm1hcCgod2luZG93KSA9PiAod2luZG93LmtpbmQgPT09IGtpbmQgPyB7IC4uLndpbmRvdywgeiB9IDogd2luZG93KSk7XG4gICAgICB9XG4gICAgICByZXR1cm4gWy4uLmN1cnJlbnQsIGNyZWF0ZVN0b3J5V2luZG93KGtpbmQsIHopXTtcbiAgICB9KTtcbiAgfTtcblxuICBjb25zdCBjbG9zZVN0b3J5V2luZG93ID0gKGtpbmQ6IFN0b3J5RnVuY3Rpb25XaW5kb3dJZCkgPT4ge1xuICAgIHNldFN0b3J5V2luZG93cygoY3VycmVudCkgPT4gY3VycmVudC5maWx0ZXIoKHdpbmRvdykgPT4gd2luZG93LmtpbmQgIT09IGtpbmQpKTtcbiAgfTtcblxuICBjb25zdCB1cGRhdGVTdG9yeVdpbmRvdyA9IChraW5kOiBTdG9yeUZ1bmN0aW9uV2luZG93SWQsIHBhdGNoOiBQYXJ0aWFsPFN0b3J5V2luZG93SW5zdGFuY2U+KSA9PiB7XG4gICAgc2V0U3RvcnlXaW5kb3dzKChjdXJyZW50KSA9PiBjdXJyZW50Lm1hcCgod2luZG93KSA9PiAod2luZG93LmtpbmQgPT09IGtpbmQgPyB7IC4uLndpbmRvdywgLi4ucGF0Y2ggfSA6IHdpbmRvdykpKTtcbiAgfTtcblxuICBjb25zdCBicmluZ1N0b3J5V2luZG93VG9Gcm9udCA9IChraW5kOiBTdG9yeUZ1bmN0aW9uV2luZG93SWQpID0+IHtcbiAgICBjb25zdCB6ID0gc3RvcnlOZXh0WlJlZi5jdXJyZW50Kys7XG4gICAgdXBkYXRlU3RvcnlXaW5kb3coa2luZCwgeyB6IH0pO1xuICB9O1xuXG4gIGNvbnN0IHN0YXJ0U3RvcnlXaW5kb3dEcmFnID0gKGtpbmQ6IFN0b3J5RnVuY3Rpb25XaW5kb3dJZCwgZXZlbnQ6IFBvaW50ZXJFdmVudDxIVE1MRWxlbWVudD4pID0+IHtcbiAgICBjb25zdCBjdXJyZW50V2luZG93ID0gc3RvcnlXaW5kb3dzLmZpbmQoKHdpbmRvdykgPT4gd2luZG93LmtpbmQgPT09IGtpbmQpO1xuICAgIGlmICghY3VycmVudFdpbmRvdykgcmV0dXJuO1xuICAgIGJyaW5nU3RvcnlXaW5kb3dUb0Zyb250KGtpbmQpO1xuICAgIHN0b3J5RHJhZ1N0YXRlLmN1cnJlbnQgPSB7XG4gICAgICBraW5kLFxuICAgICAgc3RhcnRYOiBldmVudC5jbGllbnRYLFxuICAgICAgc3RhcnRZOiBldmVudC5jbGllbnRZLFxuICAgICAgYmFzZVg6IGN1cnJlbnRXaW5kb3cueCxcbiAgICAgIGJhc2VZOiBjdXJyZW50V2luZG93LnksXG4gICAgfTtcbiAgICBldmVudC5jdXJyZW50VGFyZ2V0LnNldFBvaW50ZXJDYXB0dXJlPy4oZXZlbnQucG9pbnRlcklkKTtcbiAgfTtcblxuICBjb25zdCBtb3ZlU3RvcnlXaW5kb3cgPSAoZXZlbnQ6IFBvaW50ZXJFdmVudDxIVE1MRWxlbWVudD4pID0+IHtcbiAgICBjb25zdCBkcmFnID0gc3RvcnlEcmFnU3RhdGUuY3VycmVudDtcbiAgICBpZiAoIWRyYWcpIHJldHVybjtcbiAgICB1cGRhdGVTdG9yeVdpbmRvdyhkcmFnLmtpbmQsIHtcbiAgICAgIHg6IGRyYWcuYmFzZVggKyBldmVudC5jbGllbnRYIC0gZHJhZy5zdGFydFgsXG4gICAgICB5OiBkcmFnLmJhc2VZICsgZXZlbnQuY2xpZW50WSAtIGRyYWcuc3RhcnRZLFxuICAgIH0pO1xuICB9O1xuXG4gIGNvbnN0IHN0b3BTdG9yeVdpbmRvd0RyYWcgPSAoZXZlbnQ6IFBvaW50ZXJFdmVudDxIVE1MRWxlbWVudD4pID0+IHtcbiAgICBldmVudC5jdXJyZW50VGFyZ2V0LnJlbGVhc2VQb2ludGVyQ2FwdHVyZT8uKGV2ZW50LnBvaW50ZXJJZCk7XG4gICAgc3RvcnlEcmFnU3RhdGUuY3VycmVudCA9IG51bGw7XG4gIH07XG5cbiAgY29uc3Qgc3RhcnRTdG9yeVdpbmRvd1Jlc2l6ZSA9IChraW5kOiBTdG9yeUZ1bmN0aW9uV2luZG93SWQsIGV2ZW50OiBQb2ludGVyRXZlbnQ8SFRNTEVsZW1lbnQ+KSA9PiB7XG4gICAgY29uc3QgY3VycmVudFdpbmRvdyA9IHN0b3J5V2luZG93cy5maW5kKCh3aW5kb3cpID0+IHdpbmRvdy5raW5kID09PSBraW5kKTtcbiAgICBpZiAoIWN1cnJlbnRXaW5kb3cpIHJldHVybjtcbiAgICBldmVudC5zdG9wUHJvcGFnYXRpb24oKTtcbiAgICBicmluZ1N0b3J5V2luZG93VG9Gcm9udChraW5kKTtcbiAgICBzdG9yeVJlc2l6ZVN0YXRlLmN1cnJlbnQgPSB7XG4gICAgICBraW5kLFxuICAgICAgc3RhcnRYOiBldmVudC5jbGllbnRYLFxuICAgICAgc3RhcnRZOiBldmVudC5jbGllbnRZLFxuICAgICAgd2lkdGg6IGN1cnJlbnRXaW5kb3cud2lkdGgsXG4gICAgICBoZWlnaHQ6IGN1cnJlbnRXaW5kb3cuaGVpZ2h0LFxuICAgIH07XG4gICAgZXZlbnQuY3VycmVudFRhcmdldC5zZXRQb2ludGVyQ2FwdHVyZT8uKGV2ZW50LnBvaW50ZXJJZCk7XG4gIH07XG5cbiAgY29uc3QgbW92ZVN0b3J5V2luZG93UmVzaXplID0gKGV2ZW50OiBQb2ludGVyRXZlbnQ8SFRNTEVsZW1lbnQ+KSA9PiB7XG4gICAgY29uc3QgcmVzaXplID0gc3RvcnlSZXNpemVTdGF0ZS5jdXJyZW50O1xuICAgIGlmICghcmVzaXplKSByZXR1cm47XG4gICAgZXZlbnQuc3RvcFByb3BhZ2F0aW9uKCk7XG4gICAgdXBkYXRlU3RvcnlXaW5kb3coXG4gICAgICByZXNpemUua2luZCxcbiAgICAgIGNsYW1wV2luZG93U2l6ZShcbiAgICAgICAge1xuICAgICAgICAgIHdpZHRoOiByZXNpemUud2lkdGggKyBldmVudC5jbGllbnRYIC0gcmVzaXplLnN0YXJ0WCxcbiAgICAgICAgICBoZWlnaHQ6IHJlc2l6ZS5oZWlnaHQgKyBldmVudC5jbGllbnRZIC0gcmVzaXplLnN0YXJ0WSxcbiAgICAgICAgfSxcbiAgICAgICAgc3RvcnlXaW5kb3dNaW5TaXplLFxuICAgICAgICBzdG9yeVdpbmRvd01heFNpemUsXG4gICAgICApLFxuICAgICk7XG4gIH07XG5cbiAgY29uc3Qgc3RvcFN0b3J5V2luZG93UmVzaXplID0gKGV2ZW50OiBQb2ludGVyRXZlbnQ8SFRNTEVsZW1lbnQ+KSA9PiB7XG4gICAgZXZlbnQuc3RvcFByb3BhZ2F0aW9uKCk7XG4gICAgZXZlbnQuY3VycmVudFRhcmdldC5yZWxlYXNlUG9pbnRlckNhcHR1cmU/LihldmVudC5wb2ludGVySWQpO1xuICAgIHN0b3J5UmVzaXplU3RhdGUuY3VycmVudCA9IG51bGw7XG4gIH07XG5cbiAgY29uc3Qgc3VibWl0U3RvcnlXaW5kb3dJbnN0cnVjdGlvbiA9IGFzeW5jICh3aW5kb3c6IFN0b3J5V2luZG93SW5zdGFuY2UpID0+IHtcbiAgICBjb25zdCB0ZXh0ID0gd2luZG93LmRyYWZ0LnRyaW0oKTtcbiAgICBpZiAoIXRleHQgfHwgd2luZG93LnNlbmRTdGF0dXMgPT09IFwic2VuZGluZ1wiKSByZXR1cm47XG4gICAgY29uc3QgdGl0bGUgPSBzdG9yeVdpbmRvd1RpdGxlc1t3aW5kb3cua2luZF07XG4gICAgdXBkYXRlU3RvcnlXaW5kb3cod2luZG93LmtpbmQsIHsgZHJhZnQ6IFwiXCIsIHNlbmRTdGF0dXM6IFwic2VuZGluZ1wiIH0pO1xuICAgIGNvbnN0IG1lc3NhZ2UgPSBbXG4gICAgICBg44CQJHt0aXRsZX3jgJFgLFxuICAgICAgYOeUqOaIt+aMh+S7pO+8miR7dGV4dH1gLFxuICAgICAgXCLor7flj6rlm7Tnu5Xov5nkuKrnqpflj6Pph4znmoTliafmg4XmnZDmlpnnu5nlh7rlj6/miafooYzlu7rorq7vvIzpgb/lhY3lpI3ov7Dlhajph4/orr7lrprjgIJcIixcbiAgICBdLmpvaW4oXCJcXG5cIik7XG4gICAgdHJ5IHtcbiAgICAgIGF3YWl0IG9uU2VuZFBsb3RJbnN0cnVjdGlvbihtZXNzYWdlKTtcbiAgICAgIHVwZGF0ZVN0b3J5V2luZG93KHdpbmRvdy5raW5kLCB7IHNlbmRTdGF0dXM6IFwic2VudFwiIH0pO1xuICAgIH0gY2F0Y2gge1xuICAgICAgdXBkYXRlU3RvcnlXaW5kb3cod2luZG93LmtpbmQsIHsgc2VuZFN0YXR1czogXCJlcnJvclwiIH0pO1xuICAgIH1cbiAgfTtcblxuICBjb25zdCBzdWJtaXRTdWdnZXN0aW9uID0gYXN5bmMgKGV2ZW50OiBGb3JtRXZlbnQ8SFRNTEZvcm1FbGVtZW50PikgPT4ge1xuICAgIGV2ZW50LnByZXZlbnREZWZhdWx0KCk7XG4gICAgY29uc3QgdGV4dCA9IHN1Z2dlc3Rpb25UZXh0LnRyaW0oKTtcbiAgICBjb25zdCBlZGdlID0gcmVsYXRpb25zaGlwRWRnZXMuZmluZCgoaXRlbSkgPT4gaXRlbS5pZCA9PT0gYWN0aXZlRWRnZUlkKTtcbiAgICBpZiAoIXRleHQgfHwgIWVkZ2UgfHwgc3VnZ2VzdGlvblNlbmRpbmdSZWYuY3VycmVudCkgcmV0dXJuO1xuICAgIHN1Z2dlc3Rpb25TZW5kaW5nUmVmLmN1cnJlbnQgPSB0cnVlO1xuXG4gICAgY29uc3QgaWQgPSBjcmVhdGVTdWdnZXN0aW9uSWQoKTtcbiAgICBzZXRTdWdnZXN0aW9uVGV4dChcIlwiKTtcbiAgICBzZXRTdWdnZXN0aW9ucygoY3VycmVudCkgPT4gWy4uLmN1cnJlbnQsIHsgaWQsIGVkZ2VJZDogZWRnZS5pZCwgdGV4dCwgc3RhdHVzOiBcInNlbmRpbmdcIiB9XSk7XG5cbiAgICBjb25zdCBtZXNzYWdlID0gW1xuICAgICAgXCLjgJDkurrnianlhbPns7vlm77lu7rorq7jgJFcIixcbiAgICAgIGDlhbPns7vvvJoke2VkZ2UuZnJvbX0gLT4gJHtlZGdlLnRvfWAsXG4gICAgICBg5b2T5YmN54q25oCB77yaJHtlZGdlLnN0YXR1c31gLFxuICAgICAgYOS4u+imgeWJp+aDheW8leWvvO+8miR7ZWRnZS5ndWlkZX1gLFxuICAgICAgYOeUqOaIt+W7uuiuru+8miR7dGV4dH1gLFxuICAgICAgXCLor7fliKTmlq3ov5nmnaHlu7rorq7mmK/lkKbpgILlkIjliqDlhaXlkI7nu63liafmg4XvvIzlubbnu5nlh7rlj6/miafooYzosIPmlbTjgIJcIixcbiAgICBdLmpvaW4oXCJcXG5cIik7XG5cbiAgICB0cnkge1xuICAgICAgY29uc3QgcmVzdWx0ID0gYXdhaXQgb25TZW5kUGxvdEluc3RydWN0aW9uKG1lc3NhZ2UpO1xuICAgICAgY29uc3QgcmVzcG9uc2UgPSBnZXRJbnN0cnVjdGlvblJlc3BvbnNlKHJlc3VsdCk7XG4gICAgICBzZXRTdWdnZXN0aW9ucygoY3VycmVudCkgPT5cbiAgICAgICAgY3VycmVudC5tYXAoKGl0ZW0pID0+XG4gICAgICAgICAgaXRlbS5pZCA9PT0gaWRcbiAgICAgICAgICAgID8ge1xuICAgICAgICAgICAgICAuLi5pdGVtLFxuICAgICAgICAgICAgICBzdGF0dXM6IHJlc3BvbnNlID8gXCJzZW50XCIgOiBcInF1ZXVlZFwiLFxuICAgICAgICAgICAgICByZXNwb25zZSxcbiAgICAgICAgICAgIH1cbiAgICAgICAgICAgIDogaXRlbSxcbiAgICAgICAgKSxcbiAgICAgICk7XG4gICAgfSBjYXRjaCAoZXJyb3IpIHtcbiAgICAgIHNldFN1Z2dlc3Rpb25zKChjdXJyZW50KSA9PlxuICAgICAgICBjdXJyZW50Lm1hcCgoaXRlbSkgPT5cbiAgICAgICAgICBpdGVtLmlkID09PSBpZFxuICAgICAgICAgICAgPyB7IC4uLml0ZW0sIHN0YXR1czogXCJlcnJvclwiLCByZXNwb25zZTogZXJyb3IgaW5zdGFuY2VvZiBFcnJvciA/IGVycm9yLm1lc3NhZ2UgOiBTdHJpbmcoZXJyb3IpIH1cbiAgICAgICAgICAgIDogaXRlbSxcbiAgICAgICAgKSxcbiAgICAgICk7XG4gICAgfSBmaW5hbGx5IHtcbiAgICAgIHN1Z2dlc3Rpb25TZW5kaW5nUmVmLmN1cnJlbnQgPSBmYWxzZTtcbiAgICB9XG4gIH07XG5cbiAgcmV0dXJuIChcbiAgICA8c2VjdGlvbiBjbGFzc05hbWU9XCJzdG9yeS1mbG93LW1hcFwiIGFyaWEtbGFiZWw9XCLmlYXkuovmtYHnqIvlm75cIj5cbiAgICAgIDxoZWFkZXIgY2xhc3NOYW1lPVwiZmxvdy1oZWFkZXJcIj5cbiAgICAgICAgPGRpdj5cbiAgICAgICAgICA8c3Bhbj5GTE9XIE1BUDwvc3Bhbj5cbiAgICAgICAgICA8aDM+5pWF5LqL5rWB56iL5Zu+PC9oMz5cbiAgICAgICAgPC9kaXY+XG4gICAgICAgIDxOZXR3b3JrIGFyaWEtaGlkZGVuPVwidHJ1ZVwiIHNpemU9ezE4fSAvPlxuICAgICAgPC9oZWFkZXI+XG5cbiAgICAgIDxzZWN0aW9uIGNsYXNzTmFtZT1cInJlbGF0aW9uc2hpcC1sYXVuY2gtcGFuZWxcIiBhcmlhLWxhYmVsPVwi5Lq654mp5YWz57O75YWl5Y+jXCI+XG4gICAgICAgIDxkaXY+XG4gICAgICAgICAgPHNwYW4+UkVMQVRJT04gTUFQPC9zcGFuPlxuICAgICAgICAgIDxzdHJvbmc+5Lq654mp5YWz57O75Zu+PC9zdHJvbmc+XG4gICAgICAgIDwvZGl2PlxuICAgICAgICA8ZGw+XG4gICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgIDxkdD7op5LoibI8L2R0PlxuICAgICAgICAgICAgPGRkPntzdG9yeUFjdG9ycy5sZW5ndGh9PC9kZD5cbiAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgPGR0Pui/nue6vzwvZHQ+XG4gICAgICAgICAgICA8ZGQ+e3JlbGF0aW9uc2hpcEVkZ2VzLmxlbmd0aH08L2RkPlxuICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgIDxkaXY+XG4gICAgICAgICAgICA8ZHQ+5Li75YWz57O7PC9kdD5cbiAgICAgICAgICAgIDxkZD57cmVsYXRpb25zaGlwRWRnZXNbMF0/LnN0YXR1c308L2RkPlxuICAgICAgICAgIDwvZGl2PlxuICAgICAgICA8L2RsPlxuICAgICAgICA8YnV0dG9uIHR5cGU9XCJidXR0b25cIiBhcmlhLWxhYmVsPVwi5omT5byA5Lq654mp5YWz57O756qXXCIgb25DbGljaz17KCkgPT4gc2V0UmVsYXRpb25zaGlwV2luZG93T3Blbih0cnVlKX0+XG4gICAgICAgICAgPE5ldHdvcmsgYXJpYS1oaWRkZW49XCJ0cnVlXCIgc2l6ZT17MTZ9IC8+XG4gICAgICAgICAgPHNwYW4+5Lq654mp5YWz57O756qXPC9zcGFuPlxuICAgICAgICA8L2J1dHRvbj5cbiAgICAgIDwvc2VjdGlvbj5cblxuICAgICAge2lzUmVsYXRpb25zaGlwV2luZG93T3BlbiA/IChcbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJyZWxhdGlvbnNoaXAtd2luZG93LWJhY2tkcm9wXCI+XG4gICAgICAgICAgPHNlY3Rpb25cbiAgICAgICAgICAgIGNsYXNzTmFtZT1cInJlbGF0aW9uc2hpcC13aW5kb3dcIlxuICAgICAgICAgICAgcm9sZT1cImRpYWxvZ1wiXG4gICAgICAgICAgICBhcmlhLW1vZGFsPVwidHJ1ZVwiXG4gICAgICAgICAgICBhcmlhLWxhYmVsPVwi5Lq654mp5YWz57O756qX5Y+jXCJcbiAgICAgICAgICAgIHN0eWxlPXt7XG4gICAgICAgICAgICAgIHRyYW5zZm9ybTogYHRyYW5zbGF0ZSgke3JlbGF0aW9uc2hpcFdpbmRvd1Bvc2l0aW9uLnh9cHgsICR7cmVsYXRpb25zaGlwV2luZG93UG9zaXRpb24ueX1weClgLFxuICAgICAgICAgICAgICB3aWR0aDogYCR7cmVsYXRpb25zaGlwV2luZG93U2l6ZS53aWR0aH1weGAsXG4gICAgICAgICAgICAgIGhlaWdodDogYCR7cmVsYXRpb25zaGlwV2luZG93U2l6ZS5oZWlnaHR9cHhgLFxuICAgICAgICAgICAgfX1cbiAgICAgICAgICA+XG4gICAgICAgICAgICA8aGVhZGVyXG4gICAgICAgICAgICAgIGNsYXNzTmFtZT1cInJlbGF0aW9uc2hpcC13aW5kb3ctaGVhZGVyXCJcbiAgICAgICAgICAgICAgYXJpYS1sYWJlbD1cIuaLluWKqOS6uueJqeWFs+ezu+eql+WPo1wiXG4gICAgICAgICAgICAgIG9uUG9pbnRlckRvd249e3N0YXJ0UmVsYXRpb25zaGlwV2luZG93RHJhZ31cbiAgICAgICAgICAgICAgb25Qb2ludGVyTW92ZT17bW92ZVJlbGF0aW9uc2hpcFdpbmRvd31cbiAgICAgICAgICAgICAgb25Qb2ludGVyVXA9e3N0b3BSZWxhdGlvbnNoaXBXaW5kb3dEcmFnfVxuICAgICAgICAgICAgICBvblBvaW50ZXJDYW5jZWw9e3N0b3BSZWxhdGlvbnNoaXBXaW5kb3dEcmFnfVxuICAgICAgICAgICAgPlxuICAgICAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgICAgIDxzcGFuPlJFTEFUSU9OIFdJTkRPVzwvc3Bhbj5cbiAgICAgICAgICAgICAgICA8c3Ryb25nPuS6uueJqeWFs+ezu+eql+WPozwvc3Ryb25nPlxuICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJyZWxhdGlvbnNoaXAtdG9vbGJhclwiPlxuICAgICAgICAgICAgICAgIDxNb3ZlIGFyaWEtaGlkZGVuPVwidHJ1ZVwiIHNpemU9ezE2fSAvPlxuICAgICAgICAgICAgICAgIDxidXR0b24gdHlwZT1cImJ1dHRvblwiIGFyaWEtbGFiZWw9XCLnvKnlsI/lhbPns7vlm75cIiBvblBvaW50ZXJEb3duPXsoZXZlbnQpID0+IGV2ZW50LnN0b3BQcm9wYWdhdGlvbigpfSBvbkNsaWNrPXt6b29tT3V0fT5cbiAgICAgICAgICAgICAgICAgIDxab29tT3V0IGFyaWEtaGlkZGVuPVwidHJ1ZVwiIHNpemU9ezE1fSAvPlxuICAgICAgICAgICAgICAgIDwvYnV0dG9uPlxuICAgICAgICAgICAgICAgIDxzdHJvbmc+e01hdGgucm91bmQoem9vbSAqIDEwMCl9JTwvc3Ryb25nPlxuICAgICAgICAgICAgICAgIDxidXR0b24gdHlwZT1cImJ1dHRvblwiIGFyaWEtbGFiZWw9XCLmlL7lpKflhbPns7vlm75cIiBvblBvaW50ZXJEb3duPXsoZXZlbnQpID0+IGV2ZW50LnN0b3BQcm9wYWdhdGlvbigpfSBvbkNsaWNrPXt6b29tSW59PlxuICAgICAgICAgICAgICAgICAgPFpvb21JbiBhcmlhLWhpZGRlbj1cInRydWVcIiBzaXplPXsxNX0gLz5cbiAgICAgICAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgICAgICAgICA8YnV0dG9uIHR5cGU9XCJidXR0b25cIiBhcmlhLWxhYmVsPVwi6YeN572u5YWz57O75Zu+XCIgb25Qb2ludGVyRG93bj17KGV2ZW50KSA9PiBldmVudC5zdG9wUHJvcGFnYXRpb24oKX0gb25DbGljaz17cmVzZXRWaWV3fT5cbiAgICAgICAgICAgICAgICAgIDxSb3RhdGVDY3cgYXJpYS1oaWRkZW49XCJ0cnVlXCIgc2l6ZT17MTV9IC8+XG4gICAgICAgICAgICAgICAgPC9idXR0b24+XG4gICAgICAgICAgICAgICAgPGJ1dHRvbiB0eXBlPVwiYnV0dG9uXCIgYXJpYS1sYWJlbD1cIuWFs+mXreS6uueJqeWFs+ezu+eql+WPo1wiIG9uUG9pbnRlckRvd249eyhldmVudCkgPT4gZXZlbnQuc3RvcFByb3BhZ2F0aW9uKCl9IG9uQ2xpY2s9eygpID0+IHNldFJlbGF0aW9uc2hpcFdpbmRvd09wZW4oZmFsc2UpfT5cbiAgICAgICAgICAgICAgICAgIDxYIGFyaWEtaGlkZGVuPVwidHJ1ZVwiIHNpemU9ezE1fSAvPlxuICAgICAgICAgICAgICAgIDwvYnV0dG9uPlxuICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgIDwvaGVhZGVyPlxuICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJyZWxhdGlvbnNoaXAtd2luZG93LWxheW91dFwiPlxuICAgICAgICAgICAgICA8ZGl2XG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwicmVsYXRpb25zaGlwLWNhbnZhc1wiXG4gICAgICAgICAgICAgICAgYXJpYS1sYWJlbD1cIuWPr+aLluaLveS6uueJqeWFs+ezu+eUu+W4g1wiXG4gICAgICAgICAgICAgICAgb25Qb2ludGVyRG93bj17c3RhcnRQYW59XG4gICAgICAgICAgICAgICAgb25Qb2ludGVyTW92ZT17bW92ZVBhbn1cbiAgICAgICAgICAgICAgICBvblBvaW50ZXJVcD17c3RvcFBhbn1cbiAgICAgICAgICAgICAgICBvblBvaW50ZXJDYW5jZWw9e3N0b3BQYW59XG4gICAgICAgICAgICAgID5cbiAgICAgICAgICAgICAgICA8ZGl2XG4gICAgICAgICAgICAgICAgICBjbGFzc05hbWU9XCJyZWxhdGlvbnNoaXAtY2FudmFzLWlubmVyXCJcbiAgICAgICAgICAgICAgICAgIHN0eWxlPXt7IHRyYW5zZm9ybTogYHRyYW5zbGF0ZSgke3Bhbi54fXB4LCAke3Bhbi55fXB4KSBzY2FsZSgke3pvb219KWAgfX1cbiAgICAgICAgICAgICAgICA+XG4gICAgICAgICAgICAgICAgICA8UmVsYXRpb25zaGlwR3JhcGggc3VnZ2VzdGlvbnM9e3N1Z2dlc3Rpb25zfSAvPlxuICAgICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJyZWxhdGlvbnNoaXAtc2lkZS1wYW5lbFwiPlxuICAgICAgICAgICAgICAgIDxSZWxhdGlvbnNoaXBMb2cgLz5cbiAgICAgICAgICAgICAgICA8UmVsYXRpb25zaGlwU3VnZ2VzdGlvblBhbmVsXG4gICAgICAgICAgICAgICAgICBhY3RpdmVFZGdlSWQ9e2FjdGl2ZUVkZ2VJZH1cbiAgICAgICAgICAgICAgICAgIG9uQWN0aXZlRWRnZUNoYW5nZT17c2V0QWN0aXZlRWRnZUlkfVxuICAgICAgICAgICAgICAgICAgb25TdWJtaXQ9e3N1Ym1pdFN1Z2dlc3Rpb259XG4gICAgICAgICAgICAgICAgICBpc1NlbmRpbmc9e2lzU3VnZ2VzdGlvblNlbmRpbmd9XG4gICAgICAgICAgICAgICAgICBzdWdnZXN0aW9uVGV4dD17c3VnZ2VzdGlvblRleHR9XG4gICAgICAgICAgICAgICAgICBvblN1Z2dlc3Rpb25UZXh0Q2hhbmdlPXtzZXRTdWdnZXN0aW9uVGV4dH1cbiAgICAgICAgICAgICAgICAvPlxuICAgICAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgPGJ1dHRvblxuICAgICAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcbiAgICAgICAgICAgICAgY2xhc3NOYW1lPVwid2luZG93LXJlc2l6ZS1oYW5kbGVcIlxuICAgICAgICAgICAgICBhcmlhLWxhYmVsPVwi6LCD5pW05Lq654mp5YWz57O756qX5Y+j5aSn5bCPXCJcbiAgICAgICAgICAgICAgb25Qb2ludGVyRG93bj17c3RhcnRSZWxhdGlvbnNoaXBXaW5kb3dSZXNpemV9XG4gICAgICAgICAgICAgIG9uUG9pbnRlck1vdmU9e21vdmVSZWxhdGlvbnNoaXBXaW5kb3dSZXNpemV9XG4gICAgICAgICAgICAgIG9uUG9pbnRlclVwPXtzdG9wUmVsYXRpb25zaGlwV2luZG93UmVzaXplfVxuICAgICAgICAgICAgICBvblBvaW50ZXJDYW5jZWw9e3N0b3BSZWxhdGlvbnNoaXBXaW5kb3dSZXNpemV9XG4gICAgICAgICAgICAvPlxuICAgICAgICAgIDwvc2VjdGlvbj5cbiAgICAgICAgPC9kaXY+XG4gICAgICApIDogbnVsbH1cblxuICAgICAgPHNlY3Rpb24gY2xhc3NOYW1lPVwic2NlbmUtY2FyZC1ib2FyZFwiIGFyaWEtbGFiZWw9XCLlnLrmma/ljaHniYdcIj5cbiAgICAgICAgPGhlYWRlcj5cbiAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgPHNwYW4+U0NFTkUgQ0FSRFM8L3NwYW4+XG4gICAgICAgICAgICA8c3Ryb25nPuWcuuaZr+WNoeeJhzwvc3Ryb25nPlxuICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgIDxidXR0b24gdHlwZT1cImJ1dHRvblwiIGFyaWEtbGFiZWw9XCLmiZPlvIDlnLrmma/ljaHniYfnqpflj6NcIiBvbkNsaWNrPXsoKSA9PiBvcGVuU3RvcnlXaW5kb3coXCJzY2VuZXNcIil9PlxuICAgICAgICAgICAg5Zy65pmv56qXXG4gICAgICAgICAgPC9idXR0b24+XG4gICAgICAgIDwvaGVhZGVyPlxuICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInNjZW5lLWNhcmQtcm93XCI+XG4gICAgICAgICAge3NjZW5lQ2FyZHMubWFwKChzY2VuZSkgPT4gKFxuICAgICAgICAgICAgPGFydGljbGUgY2xhc3NOYW1lPVwic2NlbmUtY2FyZFwiIGRhdGEtZWRnZS1pZD17c2NlbmUucmVsYXRpb25FZGdlSWR9IGtleT17c2NlbmUuaWR9PlxuICAgICAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgICAgIDxzcGFuPntzY2VuZS5wbG90TGluZX08L3NwYW4+XG4gICAgICAgICAgICAgICAgPHN0cm9uZz57c2NlbmUudGl0bGV9PC9zdHJvbmc+XG4gICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgICA8cD48Yj7nm67moIc8L2I+e3NjZW5lLmdvYWx9PC9wPlxuICAgICAgICAgICAgICA8cD48Yj7lhrLnqoE8L2I+e3NjZW5lLmNvbmZsaWN0fTwvcD5cbiAgICAgICAgICAgICAgPHA+PGI+6ZKp5a2QPC9iPntzY2VuZS5ob29rfTwvcD5cbiAgICAgICAgICAgIDwvYXJ0aWNsZT5cbiAgICAgICAgICApKX1cbiAgICAgICAgPC9kaXY+XG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwicmVsYXRpb25zaGlwLXRpbWVsaW5lXCIgYXJpYS1sYWJlbD1cIuWFs+ezu+aXtumXtOe6v1wiPlxuICAgICAgICAgIDxoZWFkZXI+XG4gICAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgICA8c3Bhbj5SRUxBVElPTiBUSU1FTElORTwvc3Bhbj5cbiAgICAgICAgICAgICAgPHN0cm9uZz7lhbPns7vml7bpl7Tnur88L3N0cm9uZz5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgPGJ1dHRvbiB0eXBlPVwiYnV0dG9uXCIgYXJpYS1sYWJlbD1cIuaJk+W8gOWFs+ezu+aXtumXtOe6v+eql+WPo1wiIG9uQ2xpY2s9eygpID0+IG9wZW5TdG9yeVdpbmRvdyhcInRpbWVsaW5lXCIpfT5cbiAgICAgICAgICAgICAg5pe26Ze057q/56qXXG4gICAgICAgICAgICA8L2J1dHRvbj5cbiAgICAgICAgICA8L2hlYWRlcj5cbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cInRpbWVsaW5lLXJvd1wiPlxuICAgICAgICAgICAge3JlbGF0aW9uc2hpcFRpbWVsaW5lLm1hcCgoaXRlbSkgPT4gKFxuICAgICAgICAgICAgICA8YXJ0aWNsZSBjbGFzc05hbWU9e2B0aW1lbGluZS1pdGVtIHRpbWVsaW5lLSR7aXRlbS50b25lfWB9IGRhdGEtZWRnZS1pZD17aXRlbS5lZGdlSWR9IGtleT17aXRlbS5pZH0+XG4gICAgICAgICAgICAgICAgPHNwYW4+e2l0ZW0uc2NlbmVUaXRsZX08L3NwYW4+XG4gICAgICAgICAgICAgICAgPHN0cm9uZz57aXRlbS5yZWxhdGlvbn0gLyB7aXRlbS5zdGF0dXN9PC9zdHJvbmc+XG4gICAgICAgICAgICAgICAgPHA+PGI+5Y+Y5YyW5Y6f5ZugPC9iPntpdGVtLmNhdXNlfTwvcD5cbiAgICAgICAgICAgICAgICA8cD48Yj7lkI7nu63lj5jljJY8L2I+e2l0ZW0ubmV4dFNoaWZ0fTwvcD5cbiAgICAgICAgICAgICAgPC9hcnRpY2xlPlxuICAgICAgICAgICAgKSl9XG4gICAgICAgICAgPC9kaXY+XG4gICAgICAgIDwvZGl2PlxuICAgICAgPC9zZWN0aW9uPlxuXG4gICAgICB7c3RvcnlXaW5kb3dzLmxlbmd0aCA/IChcbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzdG9yeS1mdW5jdGlvbi13aW5kb3ctZGVza1wiIGFyaWEtbGFiZWw9XCLmlYXkuovlpJrnqpflj6Plt6XkvZzlj7BcIj5cbiAgICAgICAgICB7c3RvcnlXaW5kb3dzLm1hcCgod2luZG93KSA9PiAoXG4gICAgICAgICAgICA8U3RvcnlGdW5jdGlvbldpbmRvd1xuICAgICAgICAgICAgICBhY3RpdmVXaW5kb3c9e3dpbmRvdy5raW5kfVxuICAgICAgICAgICAgICBkcmFmdD17d2luZG93LmRyYWZ0fVxuICAgICAgICAgICAgICBrZXk9e3dpbmRvdy5raW5kfVxuICAgICAgICAgICAgICBvbkJyaW5nVG9Gcm9udD17KCkgPT4gYnJpbmdTdG9yeVdpbmRvd1RvRnJvbnQod2luZG93LmtpbmQpfVxuICAgICAgICAgICAgICBvbkNsb3NlPXsoKSA9PiBjbG9zZVN0b3J5V2luZG93KHdpbmRvdy5raW5kKX1cbiAgICAgICAgICAgICAgb25EcmFnRW5kPXtzdG9wU3RvcnlXaW5kb3dEcmFnfVxuICAgICAgICAgICAgICBvbkRyYWdNb3ZlPXttb3ZlU3RvcnlXaW5kb3d9XG4gICAgICAgICAgICAgIG9uRHJhZ1N0YXJ0PXsoZXZlbnQpID0+IHN0YXJ0U3RvcnlXaW5kb3dEcmFnKHdpbmRvdy5raW5kLCBldmVudCl9XG4gICAgICAgICAgICAgIG9uRHJhZnRDaGFuZ2U9eyh2YWx1ZSkgPT4gdXBkYXRlU3RvcnlXaW5kb3cod2luZG93LmtpbmQsIHsgZHJhZnQ6IHZhbHVlLCBzZW5kU3RhdHVzOiBcImlkbGVcIiB9KX1cbiAgICAgICAgICAgICAgb25SZXNpemVFbmQ9e3N0b3BTdG9yeVdpbmRvd1Jlc2l6ZX1cbiAgICAgICAgICAgICAgb25SZXNpemVNb3ZlPXttb3ZlU3RvcnlXaW5kb3dSZXNpemV9XG4gICAgICAgICAgICAgIG9uUmVzaXplU3RhcnQ9eyhldmVudCkgPT4gc3RhcnRTdG9yeVdpbmRvd1Jlc2l6ZSh3aW5kb3cua2luZCwgZXZlbnQpfVxuICAgICAgICAgICAgICBvblN1Ym1pdEluc3RydWN0aW9uPXsoKSA9PiBzdWJtaXRTdG9yeVdpbmRvd0luc3RydWN0aW9uKHdpbmRvdyl9XG4gICAgICAgICAgICAgIHNlbmRTdGF0dXM9e3dpbmRvdy5zZW5kU3RhdHVzfVxuICAgICAgICAgICAgICBzaXplPXt7IHdpZHRoOiB3aW5kb3cud2lkdGgsIGhlaWdodDogd2luZG93LmhlaWdodCB9fVxuICAgICAgICAgICAgICB0cmFuc2Zvcm09e2B0cmFuc2xhdGUoJHt3aW5kb3cueH1weCwgJHt3aW5kb3cueX1weClgfVxuICAgICAgICAgICAgICB6SW5kZXg9e3dpbmRvdy56fVxuICAgICAgICAgICAgLz5cbiAgICAgICAgICApKX1cbiAgICAgICAgPC9kaXY+XG4gICAgICApIDogbnVsbH1cblxuICAgICAgPGRpdiBjbGFzc05hbWU9XCJmbG93LXN0YWdlLXJhaWxcIj5cbiAgICAgICAge2Zsb3dTdGFnZXMubWFwKChzdGFnZSwgaW5kZXgpID0+IChcbiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsb3ctc3RhZ2Utc3RlcFwiIGtleT17c3RhZ2UuaWR9PlxuICAgICAgICAgICAgPGFydGljbGU+XG4gICAgICAgICAgICAgIDxzdHJvbmc+e3N0YWdlLmxhYmVsfTwvc3Ryb25nPlxuICAgICAgICAgICAgICA8cD57c3RhZ2Uuc3VtbWFyeX08L3A+XG4gICAgICAgICAgICA8L2FydGljbGU+XG4gICAgICAgICAgICB7aW5kZXggPCBmbG93U3RhZ2VzLmxlbmd0aCAtIDEgPyA8c3BhbiBhcmlhLWhpZGRlbj1cInRydWVcIj4tJmd0Ozwvc3Bhbj4gOiBudWxsfVxuICAgICAgICAgIDwvZGl2PlxuICAgICAgICApKX1cbiAgICAgIDwvZGl2PlxuXG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cImZsb3ctc2lnbmFsLXJvd1wiPlxuICAgICAgICB7Zmxvd1NpZ25hbHMubWFwKChzaWduYWwpID0+IChcbiAgICAgICAgICA8YXJ0aWNsZSBrZXk9e3NpZ25hbC5sYWJlbH0+XG4gICAgICAgICAgICA8c3Ryb25nPntzaWduYWwubGFiZWx9PC9zdHJvbmc+XG4gICAgICAgICAgICA8cD57c2lnbmFsLnZhbHVlfTwvcD5cbiAgICAgICAgICA8L2FydGljbGU+XG4gICAgICAgICkpfVxuICAgICAgPC9kaXY+XG4gICAgPC9zZWN0aW9uPlxuICApO1xufVxuXG5mdW5jdGlvbiBTdG9yeUZ1bmN0aW9uV2luZG93KHtcbiAgYWN0aXZlV2luZG93LFxuICBkcmFmdCxcbiAgb25CcmluZ1RvRnJvbnQsXG4gIG9uQ2xvc2UsXG4gIG9uRHJhZ0VuZCxcbiAgb25EcmFnTW92ZSxcbiAgb25EcmFnU3RhcnQsXG4gIG9uRHJhZnRDaGFuZ2UsXG4gIG9uUmVzaXplRW5kLFxuICBvblJlc2l6ZU1vdmUsXG4gIG9uUmVzaXplU3RhcnQsXG4gIG9uU3VibWl0SW5zdHJ1Y3Rpb24sXG4gIHNlbmRTdGF0dXMsXG4gIHNpemUsXG4gIHRyYW5zZm9ybSxcbiAgekluZGV4LFxufToge1xuICBhY3RpdmVXaW5kb3c6IFN0b3J5RnVuY3Rpb25XaW5kb3dJZDtcbiAgZHJhZnQ6IHN0cmluZztcbiAgb25CcmluZ1RvRnJvbnQ6ICgpID0+IHZvaWQ7XG4gIG9uQ2xvc2U6ICgpID0+IHZvaWQ7XG4gIG9uRHJhZ0VuZDogKGV2ZW50OiBQb2ludGVyRXZlbnQ8SFRNTEVsZW1lbnQ+KSA9PiB2b2lkO1xuICBvbkRyYWdNb3ZlOiAoZXZlbnQ6IFBvaW50ZXJFdmVudDxIVE1MRWxlbWVudD4pID0+IHZvaWQ7XG4gIG9uRHJhZ1N0YXJ0OiAoZXZlbnQ6IFBvaW50ZXJFdmVudDxIVE1MRWxlbWVudD4pID0+IHZvaWQ7XG4gIG9uRHJhZnRDaGFuZ2U6ICh0ZXh0OiBzdHJpbmcpID0+IHZvaWQ7XG4gIG9uUmVzaXplRW5kOiAoZXZlbnQ6IFBvaW50ZXJFdmVudDxIVE1MRWxlbWVudD4pID0+IHZvaWQ7XG4gIG9uUmVzaXplTW92ZTogKGV2ZW50OiBQb2ludGVyRXZlbnQ8SFRNTEVsZW1lbnQ+KSA9PiB2b2lkO1xuICBvblJlc2l6ZVN0YXJ0OiAoZXZlbnQ6IFBvaW50ZXJFdmVudDxIVE1MRWxlbWVudD4pID0+IHZvaWQ7XG4gIG9uU3VibWl0SW5zdHJ1Y3Rpb246ICgpID0+IHZvaWQ7XG4gIHNlbmRTdGF0dXM6IFN0b3J5V2luZG93U3RhdHVzO1xuICBzaXplOiBXaW5kb3dTaXplO1xuICB0cmFuc2Zvcm06IHN0cmluZztcbiAgekluZGV4OiBudW1iZXI7XG59KSB7XG4gIGNvbnN0IHRpdGxlID0gc3RvcnlXaW5kb3dUaXRsZXNbYWN0aXZlV2luZG93XTtcblxuICByZXR1cm4gKFxuICAgIDxzZWN0aW9uXG4gICAgICBjbGFzc05hbWU9XCJzdG9yeS1mdW5jdGlvbi13aW5kb3dcIlxuICAgICAgcm9sZT1cImRpYWxvZ1wiXG4gICAgICBhcmlhLWxhYmVsPXt0aXRsZX1cbiAgICAgIHN0eWxlPXt7IHRyYW5zZm9ybSwgekluZGV4LCB3aWR0aDogYCR7c2l6ZS53aWR0aH1weGAsIGhlaWdodDogYCR7c2l6ZS5oZWlnaHR9cHhgIH19XG4gICAgICBvblBvaW50ZXJEb3duPXtvbkJyaW5nVG9Gcm9udH1cbiAgICA+XG4gICAgICA8aGVhZGVyXG4gICAgICAgIGNsYXNzTmFtZT1cInN0b3J5LWZ1bmN0aW9uLXdpbmRvdy1oZWFkZXJcIlxuICAgICAgICBhcmlhLWxhYmVsPXtg5ouW5YqoJHt0aXRsZX1gfVxuICAgICAgICBvblBvaW50ZXJEb3duPXtvbkRyYWdTdGFydH1cbiAgICAgICAgb25Qb2ludGVyTW92ZT17b25EcmFnTW92ZX1cbiAgICAgICAgb25Qb2ludGVyVXA9e29uRHJhZ0VuZH1cbiAgICAgICAgb25Qb2ludGVyQ2FuY2VsPXtvbkRyYWdFbmR9XG4gICAgICA+XG4gICAgICAgIDxkaXY+XG4gICAgICAgICAgPHNwYW4+U1RPUlkgV0lORE9XPC9zcGFuPlxuICAgICAgICAgIDxzdHJvbmc+e3RpdGxlfTwvc3Ryb25nPlxuICAgICAgICA8L2Rpdj5cbiAgICAgICAgPGJ1dHRvbiB0eXBlPVwiYnV0dG9uXCIgYXJpYS1sYWJlbD1cIuWFs+mXreaVheS6i+WKn+iDveeql+WPo1wiIG9uUG9pbnRlckRvd249eyhldmVudCkgPT4gZXZlbnQuc3RvcFByb3BhZ2F0aW9uKCl9IG9uQ2xpY2s9e29uQ2xvc2V9PlxuICAgICAgICAgIDxYIGFyaWEtaGlkZGVuPVwidHJ1ZVwiIHNpemU9ezE1fSAvPlxuICAgICAgICA8L2J1dHRvbj5cbiAgICAgIDwvaGVhZGVyPlxuICAgICAge2FjdGl2ZVdpbmRvdyA9PT0gXCJzY2VuZXNcIiA/IChcbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJzdG9yeS13aW5kb3ctZ3JpZFwiPlxuICAgICAgICAgIHtzY2VuZUNhcmRzLm1hcCgoc2NlbmUpID0+IChcbiAgICAgICAgICAgIDxhcnRpY2xlIGNsYXNzTmFtZT1cInN0b3J5LXdpbmRvdy1jYXJkXCIgZGF0YS1lZGdlLWlkPXtzY2VuZS5yZWxhdGlvbkVkZ2VJZH0ga2V5PXtzY2VuZS5pZH0+XG4gICAgICAgICAgICAgIDxzcGFuPntzY2VuZS5wbG90TGluZX08L3NwYW4+XG4gICAgICAgICAgICAgIDxzdHJvbmc+e3NjZW5lLnRpdGxlfTwvc3Ryb25nPlxuICAgICAgICAgICAgICA8ZGw+XG4gICAgICAgICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgICAgICAgIDxkdD7lnLrmma/kvZznlKg8L2R0PlxuICAgICAgICAgICAgICAgICAgPGRkPntzY2VuZS5nb2FsfTwvZGQ+XG4gICAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgICAgICAgIDxkdD7lhrLnqoHljovlips8L2R0PlxuICAgICAgICAgICAgICAgICAgPGRkPntzY2VuZS5jb25mbGljdH08L2RkPlxuICAgICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgICAgIDxkaXY+XG4gICAgICAgICAgICAgICAgICA8ZHQ+6K+76ICF6ZKp5a2QPC9kdD5cbiAgICAgICAgICAgICAgICAgIDxkZD57c2NlbmUuaG9va308L2RkPlxuICAgICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgICA8L2RsPlxuICAgICAgICAgICAgPC9hcnRpY2xlPlxuICAgICAgICAgICkpfVxuICAgICAgICA8L2Rpdj5cbiAgICAgICkgOiAoXG4gICAgICAgIDxkaXYgY2xhc3NOYW1lPVwic3Rvcnktd2luZG93LWdyaWRcIj5cbiAgICAgICAgICB7cmVsYXRpb25zaGlwVGltZWxpbmUubWFwKChpdGVtKSA9PiAoXG4gICAgICAgICAgICA8YXJ0aWNsZSBjbGFzc05hbWU9e2BzdG9yeS13aW5kb3ctY2FyZCBzdG9yeS13aW5kb3ctJHtpdGVtLnRvbmV9YH0gZGF0YS1lZGdlLWlkPXtpdGVtLmVkZ2VJZH0ga2V5PXtpdGVtLmlkfT5cbiAgICAgICAgICAgICAgPHNwYW4+e2l0ZW0uc2NlbmVUaXRsZX08L3NwYW4+XG4gICAgICAgICAgICAgIDxzdHJvbmc+e2l0ZW0ucmVsYXRpb259IC8ge2l0ZW0uc3RhdHVzfTwvc3Ryb25nPlxuICAgICAgICAgICAgICA8ZGw+XG4gICAgICAgICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgICAgICAgIDxkdD7lj5jljJbljp/lm6A8L2R0PlxuICAgICAgICAgICAgICAgICAgPGRkPntpdGVtLmNhdXNlfTwvZGQ+XG4gICAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgICAgPGRpdj5cbiAgICAgICAgICAgICAgICAgIDxkdD7lkI7nu63lhbPns7vlj5jljJY8L2R0PlxuICAgICAgICAgICAgICAgICAgPGRkPntpdGVtLm5leHRTaGlmdH08L2RkPlxuICAgICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgICA8L2RsPlxuICAgICAgICAgICAgPC9hcnRpY2xlPlxuICAgICAgICAgICkpfVxuICAgICAgICA8L2Rpdj5cbiAgICAgICl9XG4gICAgICA8U3RvcnlXaW5kb3dBZ2VudEJveFxuICAgICAgICBkcmFmdD17ZHJhZnR9XG4gICAgICAgIG9uRHJhZnRDaGFuZ2U9e29uRHJhZnRDaGFuZ2V9XG4gICAgICAgIG9uU3VibWl0PXtvblN1Ym1pdEluc3RydWN0aW9ufVxuICAgICAgICBzdGF0dXM9e3NlbmRTdGF0dXN9XG4gICAgICAgIHRpdGxlPXt0aXRsZX1cbiAgICAgIC8+XG4gICAgICA8YnV0dG9uXG4gICAgICAgIHR5cGU9XCJidXR0b25cIlxuICAgICAgICBjbGFzc05hbWU9XCJ3aW5kb3ctcmVzaXplLWhhbmRsZVwiXG4gICAgICAgIGFyaWEtbGFiZWw9e2DosIPmlbQke3RpdGxlfeWkp+Wwj2B9XG4gICAgICAgIG9uUG9pbnRlckRvd249e29uUmVzaXplU3RhcnR9XG4gICAgICAgIG9uUG9pbnRlck1vdmU9e29uUmVzaXplTW92ZX1cbiAgICAgICAgb25Qb2ludGVyVXA9e29uUmVzaXplRW5kfVxuICAgICAgICBvblBvaW50ZXJDYW5jZWw9e29uUmVzaXplRW5kfVxuICAgICAgLz5cbiAgICA8L3NlY3Rpb24+XG4gICk7XG59XG5cbmZ1bmN0aW9uIFN0b3J5V2luZG93QWdlbnRCb3goe1xuICBkcmFmdCxcbiAgb25EcmFmdENoYW5nZSxcbiAgb25TdWJtaXQsXG4gIHN0YXR1cyxcbiAgdGl0bGUsXG59OiB7XG4gIGRyYWZ0OiBzdHJpbmc7XG4gIG9uRHJhZnRDaGFuZ2U6ICh0ZXh0OiBzdHJpbmcpID0+IHZvaWQ7XG4gIG9uU3VibWl0OiAoKSA9PiB2b2lkO1xuICBzdGF0dXM6IFN0b3J5V2luZG93U3RhdHVzO1xuICB0aXRsZTogc3RyaW5nO1xufSkge1xuICBjb25zdCBzdGF0dXNMYWJlbDogUmVjb3JkPFN0b3J5V2luZG93U3RhdHVzLCBzdHJpbmc+ID0ge1xuICAgIGlkbGU6IFwi5b6F5Y+R6YCBXCIsXG4gICAgc2VuZGluZzogXCLlj5HpgIHkuK1cIixcbiAgICBzZW50OiBcIuW3suWPkemAgVwiLFxuICAgIGVycm9yOiBcIuWPkemAgeWksei0pVwiLFxuICB9O1xuXG4gIGNvbnN0IHN1Ym1pdCA9IChldmVudDogRm9ybUV2ZW50PEhUTUxGb3JtRWxlbWVudD4pID0+IHtcbiAgICBldmVudC5wcmV2ZW50RGVmYXVsdCgpO1xuICAgIG9uU3VibWl0KCk7XG4gIH07XG5cbiAgcmV0dXJuIChcbiAgICA8Zm9ybSBjbGFzc05hbWU9XCJ3aW5kb3ctYWdlbnQtYm94IHN0b3J5LXdpbmRvdy1hZ2VudC1ib3hcIiBvblN1Ym1pdD17c3VibWl0fT5cbiAgICAgIDxsYWJlbD5cbiAgICAgICAgPHNwYW4+e3RpdGxlfSBBSSDmjIfku6Q8L3NwYW4+XG4gICAgICAgIDx0ZXh0YXJlYVxuICAgICAgICAgIGFyaWEtbGFiZWw9e2Ake3RpdGxlfSBBSSDmjIfku6RgfVxuICAgICAgICAgIHZhbHVlPXtkcmFmdH1cbiAgICAgICAgICBvbkNoYW5nZT17KGV2ZW50KSA9PiBvbkRyYWZ0Q2hhbmdlKGV2ZW50LmN1cnJlbnRUYXJnZXQudmFsdWUpfVxuICAgICAgICAgIHBsYWNlaG9sZGVyPVwi5L6L5aaC77ya5by65YyWIFMwMSDnmoTor7vogIXpkqnlrZDvvIzlj6rnu5nkuInkuKrlj6/mm7/mjaLmlrnmoYjjgIJcIlxuICAgICAgICAvPlxuICAgICAgPC9sYWJlbD5cbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwid2luZG93LWFnZW50LWFjdGlvbnNcIj5cbiAgICAgICAgPHNwYW4gY2xhc3NOYW1lPXtgd2luZG93LWFnZW50LXN0YXR1cyBzdGF0dXMtJHtzdGF0dXN9YH0+e3N0YXR1c0xhYmVsW3N0YXR1c119PC9zcGFuPlxuICAgICAgICA8YnV0dG9uIHR5cGU9XCJzdWJtaXRcIiBhcmlhLWxhYmVsPXtg5Y+R6YCBJHt0aXRsZX3mjIfku6RgfSBkaXNhYmxlZD17IWRyYWZ0LnRyaW0oKSB8fCBzdGF0dXMgPT09IFwic2VuZGluZ1wifT5cbiAgICAgICAgICA8U2VuZEhvcml6b250YWwgYXJpYS1oaWRkZW49XCJ0cnVlXCIgc2l6ZT17MTV9IC8+XG4gICAgICAgICAg5Y+R6YCBXG4gICAgICAgIDwvYnV0dG9uPlxuICAgICAgPC9kaXY+XG4gICAgPC9mb3JtPlxuICApO1xufVxuXG5mdW5jdGlvbiBSZWxhdGlvbnNoaXBHcmFwaCh7IHN1Z2dlc3Rpb25zIH06IHsgc3VnZ2VzdGlvbnM6IFJlbGF0aW9uc2hpcFN1Z2dlc3Rpb25bXSB9KSB7XG4gIHJldHVybiAoXG4gICAgPGRpdiBjbGFzc05hbWU9XCJyZWxhdGlvbnNoaXAtbWFwXCI+XG4gICAgICA8c3ZnIGFyaWEtaGlkZGVuPVwidHJ1ZVwiIGNsYXNzTmFtZT1cInJlbGF0aW9uc2hpcC1saW5lc1wiIHZpZXdCb3g9XCIwIDAgNzYwIDIzMFwiIHByZXNlcnZlQXNwZWN0UmF0aW89XCJub25lXCI+XG4gICAgICAgIDxkZWZzPlxuICAgICAgICAgIDxtYXJrZXIgaWQ9XCJhcnJvdy1jeWFuXCIgbWFya2VySGVpZ2h0PVwiOFwiIG1hcmtlcldpZHRoPVwiOFwiIG9yaWVudD1cImF1dG9cIiByZWZYPVwiN1wiIHJlZlk9XCI0XCI+XG4gICAgICAgICAgICA8cGF0aCBkPVwiTTAsMCBMOCw0IEwwLDggWlwiIC8+XG4gICAgICAgICAgPC9tYXJrZXI+XG4gICAgICAgICAgPG1hcmtlciBpZD1cImFycm93LW1hZ2VudGFcIiBtYXJrZXJIZWlnaHQ9XCI4XCIgbWFya2VyV2lkdGg9XCI4XCIgb3JpZW50PVwiYXV0b1wiIHJlZlg9XCI3XCIgcmVmWT1cIjRcIj5cbiAgICAgICAgICAgIDxwYXRoIGQ9XCJNMCwwIEw4LDQgTDAsOCBaXCIgLz5cbiAgICAgICAgICA8L21hcmtlcj5cbiAgICAgICAgICA8bWFya2VyIGlkPVwiYXJyb3ctYW1iZXJcIiBtYXJrZXJIZWlnaHQ9XCI4XCIgbWFya2VyV2lkdGg9XCI4XCIgb3JpZW50PVwiYXV0b1wiIHJlZlg9XCI3XCIgcmVmWT1cIjRcIj5cbiAgICAgICAgICAgIDxwYXRoIGQ9XCJNMCwwIEw4LDQgTDAsOCBaXCIgLz5cbiAgICAgICAgICA8L21hcmtlcj5cbiAgICAgICAgPC9kZWZzPlxuICAgICAgICB7cmVsYXRpb25zaGlwRWRnZXMubWFwKChlZGdlKSA9PiAoXG4gICAgICAgICAgPHBhdGhcbiAgICAgICAgICAgIGNsYXNzTmFtZT17YGxpbmUtJHtlZGdlLnRvbmV9YH1cbiAgICAgICAgICAgIGRhdGEtZWRnZS1pZD17ZWRnZS5pZH1cbiAgICAgICAgICAgIGQ9e2VkZ2UucGF0aER9XG4gICAgICAgICAgICBrZXk9e2VkZ2UuaWR9XG4gICAgICAgICAgICBtYXJrZXJFbmQ9e2B1cmwoI2Fycm93LSR7ZWRnZS50b25lfSlgfVxuICAgICAgICAgIC8+XG4gICAgICAgICkpfVxuICAgICAgPC9zdmc+XG5cbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZWRnZS1sYWJlbHNcIiBhcmlhLWxhYmVsPVwi5YWz57O76L+e57q/5Ymn5oOFXCI+XG4gICAgICAgIHtyZWxhdGlvbnNoaXBFZGdlcy5tYXAoKGVkZ2UpID0+IChcbiAgICAgICAgICA8YXJ0aWNsZSBjbGFzc05hbWU9e2BlZGdlLWxhYmVsIGVkZ2UtJHtlZGdlLnRvbmV9YH0ga2V5PXtlZGdlLmlkfT5cbiAgICAgICAgICAgIDxzcGFuPntlZGdlLmZyb219IC0mZ3Q7IHtlZGdlLnRvfTwvc3Bhbj5cbiAgICAgICAgICAgIDxzdHJvbmc+e2VkZ2Uuc3RhdHVzfTwvc3Ryb25nPlxuICAgICAgICAgICAgPHA+e2VkZ2UuZ3VpZGV9PC9wPlxuICAgICAgICAgIDwvYXJ0aWNsZT5cbiAgICAgICAgKSl9XG4gICAgICA8L2Rpdj5cblxuICAgICAgPGRpdiBjbGFzc05hbWU9XCJhY3Rvci1ncmlkXCI+XG4gICAgICAgIHtzdG9yeUFjdG9ycy5tYXAoKGFjdG9yKSA9PiAoXG4gICAgICAgICAgPGFydGljbGUgY2xhc3NOYW1lPXtgYWN0b3Itbm9kZSBhY3Rvci0ke2FjdG9yLmxhbmV9YH0ga2V5PXthY3Rvci5pZH0+XG4gICAgICAgICAgICA8c3Ryb25nPnthY3Rvci5uYW1lfTwvc3Ryb25nPlxuICAgICAgICAgICAgPHNwYW4+e2FjdG9yLnJvbGV9PC9zcGFuPlxuICAgICAgICAgIDwvYXJ0aWNsZT5cbiAgICAgICAgKSl9XG4gICAgICA8L2Rpdj5cblxuICAgICAge3N1Z2dlc3Rpb25zLmxlbmd0aCA/IChcbiAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJyZWxhdGlvbnNoaXAtc3VnZ2VzdGlvbi1sYXllclwiIGFyaWEtbGFiZWw9XCLlm77kuK0gQUkg5bu66K6uXCI+XG4gICAgICAgICAge3N1Z2dlc3Rpb25zLm1hcCgoc3VnZ2VzdGlvbikgPT4ge1xuICAgICAgICAgICAgY29uc3QgcG9zaXRpb24gPSBzdWdnZXN0aW9uUG9zaXRpb25zW3N1Z2dlc3Rpb24uZWRnZUlkXSA/PyB7IGxlZnQ6IFwiNTAlXCIsIHRvcDogXCI1MCVcIiB9O1xuICAgICAgICAgICAgcmV0dXJuIChcbiAgICAgICAgICAgICAgPGFydGljbGVcbiAgICAgICAgICAgICAgICBjbGFzc05hbWU9e2ByZWxhdGlvbnNoaXAtc3VnZ2VzdGlvbi1jaGlwIHN1Z2dlc3Rpb24tJHtzdWdnZXN0aW9uLnN0YXR1c31gfVxuICAgICAgICAgICAgICAgIGRhdGEtc3VnZ2VzdGlvbi1lZGdlLWlkPXtzdWdnZXN0aW9uLmVkZ2VJZH1cbiAgICAgICAgICAgICAgICBrZXk9e3N1Z2dlc3Rpb24uaWR9XG4gICAgICAgICAgICAgICAgc3R5bGU9e3Bvc2l0aW9ufVxuICAgICAgICAgICAgICA+XG4gICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJyZWxhdGlvbnNoaXAtc3VnZ2VzdGlvbi1jaGlwLWhlYWRcIj5cbiAgICAgICAgICAgICAgICAgIDxzcGFuPkFJ5bu66K6uPC9zcGFuPlxuICAgICAgICAgICAgICAgICAgPHN0cm9uZz57c3VnZ2VzdGlvblN0YXR1c0xhYmVsc1tzdWdnZXN0aW9uLnN0YXR1c119PC9zdHJvbmc+XG4gICAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgICAgPHA+e3N1Z2dlc3Rpb24udGV4dH08L3A+XG4gICAgICAgICAgICAgIDwvYXJ0aWNsZT5cbiAgICAgICAgICAgICk7XG4gICAgICAgICAgfSl9XG4gICAgICAgIDwvZGl2PlxuICAgICAgKSA6IG51bGx9XG4gICAgPC9kaXY+XG4gICk7XG59XG5cbmZ1bmN0aW9uIFJlbGF0aW9uc2hpcFN1Z2dlc3Rpb25QYW5lbCh7XG4gIGFjdGl2ZUVkZ2VJZCxcbiAgaXNTZW5kaW5nLFxuICBvbkFjdGl2ZUVkZ2VDaGFuZ2UsXG4gIG9uU3VibWl0LFxuICBzdWdnZXN0aW9uVGV4dCxcbiAgb25TdWdnZXN0aW9uVGV4dENoYW5nZSxcbn06IHtcbiAgYWN0aXZlRWRnZUlkOiBzdHJpbmc7XG4gIGlzU2VuZGluZzogYm9vbGVhbjtcbiAgb25BY3RpdmVFZGdlQ2hhbmdlOiAoZWRnZUlkOiBzdHJpbmcpID0+IHZvaWQ7XG4gIG9uU3VibWl0OiAoZXZlbnQ6IEZvcm1FdmVudDxIVE1MRm9ybUVsZW1lbnQ+KSA9PiB2b2lkO1xuICBzdWdnZXN0aW9uVGV4dDogc3RyaW5nO1xuICBvblN1Z2dlc3Rpb25UZXh0Q2hhbmdlOiAodGV4dDogc3RyaW5nKSA9PiB2b2lkO1xufSkge1xuICByZXR1cm4gKFxuICAgIDxmb3JtIGNsYXNzTmFtZT1cInJlbGF0aW9uc2hpcC1zdWdnZXN0aW9uLXBhbmVsXCIgb25TdWJtaXQ9e29uU3VibWl0fT5cbiAgICAgIDxoZWFkZXI+XG4gICAgICAgIDxzcGFuPkFJIFNVR0dFU1RJT048L3NwYW4+XG4gICAgICAgIDxzdHJvbmc+QUkg5bu66K6u5YWl5Zu+PC9zdHJvbmc+XG4gICAgICA8L2hlYWRlcj5cbiAgICAgIDxsYWJlbD5cbiAgICAgICAgPHNwYW4+5YWz57O757q/PC9zcGFuPlxuICAgICAgICA8c2VsZWN0XG4gICAgICAgICAgYXJpYS1sYWJlbD1cIumAieaLqeS6uueJqeWFs+ezu+e6v1wiXG4gICAgICAgICAgdmFsdWU9e2FjdGl2ZUVkZ2VJZH1cbiAgICAgICAgICBvbkNoYW5nZT17KGV2ZW50KSA9PiBvbkFjdGl2ZUVkZ2VDaGFuZ2UoZXZlbnQuY3VycmVudFRhcmdldC52YWx1ZSl9XG4gICAgICAgID5cbiAgICAgICAgICB7cmVsYXRpb25zaGlwRWRnZXMubWFwKChlZGdlKSA9PiAoXG4gICAgICAgICAgICA8b3B0aW9uIGtleT17ZWRnZS5pZH0gdmFsdWU9e2VkZ2UuaWR9PlxuICAgICAgICAgICAgICB7ZWRnZS5mcm9tfSAtJmd0OyB7ZWRnZS50b30gLyB7ZWRnZS5zdGF0dXN9XG4gICAgICAgICAgICA8L29wdGlvbj5cbiAgICAgICAgICApKX1cbiAgICAgICAgPC9zZWxlY3Q+XG4gICAgICA8L2xhYmVsPlxuICAgICAgPGxhYmVsPlxuICAgICAgICA8c3Bhbj7lu7rorq48L3NwYW4+XG4gICAgICAgIDx0ZXh0YXJlYVxuICAgICAgICAgIGFyaWEtbGFiZWw9XCJBSSDlhbPns7vlu7rorq5cIlxuICAgICAgICAgIHZhbHVlPXtzdWdnZXN0aW9uVGV4dH1cbiAgICAgICAgICBvbkNoYW5nZT17KGV2ZW50KSA9PiBvblN1Z2dlc3Rpb25UZXh0Q2hhbmdlKGV2ZW50LmN1cnJlbnRUYXJnZXQudmFsdWUpfVxuICAgICAgICAgIHBsYWNlaG9sZGVyPVwi5L6L5aaC77ya6K6p5aWz5Li75Zyo5YWs5byA5aSx6LSl5ZCO5pu/5Li76KeS6KGl5LiA5Y+l6K+B6K+N44CCXCJcbiAgICAgICAgLz5cbiAgICAgIDwvbGFiZWw+XG4gICAgICA8YnV0dG9uIHR5cGU9XCJzdWJtaXRcIiBhcmlhLWxhYmVsPVwi5o+Q5LqkIEFJIOW7uuiurlwiIGRpc2FibGVkPXshc3VnZ2VzdGlvblRleHQudHJpbSgpIHx8IGlzU2VuZGluZ30+XG4gICAgICAgIDxTZW5kSG9yaXpvbnRhbCBhcmlhLWhpZGRlbj1cInRydWVcIiBzaXplPXsxNX0gLz5cbiAgICAgICAgPHNwYW4+5o+Q5LqkIEFJIOW7uuiurjwvc3Bhbj5cbiAgICAgIDwvYnV0dG9uPlxuICAgIDwvZm9ybT5cbiAgKTtcbn1cblxuZnVuY3Rpb24gUmVsYXRpb25zaGlwTG9nKCkge1xuICByZXR1cm4gKFxuICAgIDxhc2lkZSBjbGFzc05hbWU9XCJyZWxhdGlvbnNoaXAtbG9nIHJlbGF0aW9uc2hpcC1sb2ctd2luZG93XCI+XG4gICAgICA8aGVhZGVyPlxuICAgICAgICA8c3Bhbj5SRUxBVElPTiBMT0c8L3NwYW4+XG4gICAgICAgIDxzdHJvbmc+5YWz57O75ryU5Y+Y5pel5b+XPC9zdHJvbmc+XG4gICAgICA8L2hlYWRlcj5cbiAgICAgIHtyZWxhdGlvbnNoaXBFZGdlcy5tYXAoKGVkZ2UpID0+IChcbiAgICAgICAgPGFydGljbGUgY2xhc3NOYW1lPXtgcmVsYXRpb24tY2FyZCByZWxhdGlvbi0ke2VkZ2UudG9uZX1gfSBrZXk9e2VkZ2UuaWR9PlxuICAgICAgICAgIDxkaXY+XG4gICAgICAgICAgICA8c3Bhbj57ZWRnZS5mcm9tfSB7XCItPlwifSB7ZWRnZS50b308L3NwYW4+XG4gICAgICAgICAgICA8c3Ryb25nPntlZGdlLnN0YXR1c308L3N0cm9uZz5cbiAgICAgICAgICA8L2Rpdj5cbiAgICAgICAgICA8ZGw+XG4gICAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgICA8ZHQ+5by65bqmPC9kdD5cbiAgICAgICAgICAgICAgPGRkPuW8uuW6piB7ZWRnZS5zdHJlbmd0aH08L2RkPlxuICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICA8ZGl2PlxuICAgICAgICAgICAgICA8ZHQ+6aaW546wPC9kdD5cbiAgICAgICAgICAgICAgPGRkPummlueOsCB7ZWRnZS5maXJzdFNlZW59PC9kZD5cbiAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgIDwvZGw+XG4gICAgICAgICAgPHA+PGI+5ryU5Y+YPC9iPntlZGdlLmV2b2x1dGlvbn08L3A+XG4gICAgICAgICAgPHA+PGI+5Li76KaB5Ymn5oOF5byV5a+8PC9iPntlZGdlLmd1aWRlfTwvcD5cbiAgICAgICAgICA8cD48Yj7lj5jljJbljp/lm6A8L2I+e2VkZ2UuY2F1c2V9PC9wPlxuICAgICAgICAgIDxwPjxiPuWQjue7reWPmOWMljwvYj57ZWRnZS5uZXh0U2hpZnR9PC9wPlxuICAgICAgICA8L2FydGljbGU+XG4gICAgICApKX1cbiAgICA8L2FzaWRlPlxuICApO1xufVxuIl0sImZpbGUiOiJEOi9PSC1Xb3JrU3BhY2Uvbm92ZWwtcHJvbXB0LWd1aWRlL3dlYi9zcmMvY29tcG9uZW50cy9TdG9yeUZsb3dNYXAudHN4In0=
