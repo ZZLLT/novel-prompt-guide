@@ -1,43 +1,50 @@
 :root {
-  /* 表面色 — Notion 暖白灰 */
-  --color-bg:            #ffffff;
-  --color-bg-subtle:     #f7f6f3;
-  --color-bg-muted:      #eeedea;
+  /* 背景 - 奶油白/米色系（温馨舒适） */
+  --color-bg:            #fffef9;  /* 温暖米白 */
+  --color-bg-subtle:     #faf8f3;  /* 奶油色 */
+  --color-bg-muted:      #f5f2eb;  /* 柔和米色 */
+  --color-bg-elevated:   #ffffff;  /* 浮层纯白 */
 
-  /* 文字 */
-  --color-text:          #37352f;
-  --color-text-subtle:   #6b6b6b;
-  --color-text-faint:    #9b9a97;
-  --color-text-inverse:  #ffffff;
+  /* 文字 - 更柔和的棕灰色 */
+  --color-text:          #4a4845;  /* 深棕灰（温暖） */
+  --color-text-subtle:   #7c7870;  /* 中灰棕 */
+  --color-text-faint:    #a8a39d;  /* 浅灰棕 */
+  --color-text-inverse:  #ffffff;  /* 反色文字 */
 
-  /* 边框 */
-  --color-border:        #e8e5e0;
-  --color-border-strong: #d3d1cb;
+  /* 边框 - 柔和米色 */
+  --color-border:        #eae6de;  /* 米色边框 */
+  --color-border-strong: #d9d4ca;  /* 深米色 */
 
-  /* 主色 — Notion 蓝 */
-  --color-accent:        #2383e2;
-  --color-accent-hover:  #1b6ec2;
-  --color-accent-subtle: #e7f3fb;
+  /* 主色 - 柔和紫蓝（温馨舒适） */
+  --color-accent:        #8b7fc7;  /* 柔和紫蓝 */
+  --color-accent-hover:  #7469b3;  /* 深紫蓝 */
+  --color-accent-subtle: #f0eef8;  /* 极淡紫 */
 
-  /* 语义色 */
-  --color-success:  #0f7b6c;
-  --color-warning:  #d9730d;
-  --color-error:    #e03e3e;
+  /* 语义色 - 柔和版本 */
+  --color-success:  #5a9e8c;  /* 柔和绿 */
+  --color-warning:  #d4a06a;  /* 柔和橙 */
+  --color-error:    #d87c7c;  /* 柔和红 */
 
-  /* 字体 — 系统字体栈 */
+  /* 温馨辅助色 */
+  --color-warm-pink:   #f5d9e1;  /* 柔和粉 */
+  --color-warm-peach:  #ffe4d6;  /* 柔和桃 */
+  --color-warm-blue:   #dce7f5;  /* 柔和蓝 */
+  --color-warm-green:  #dff0e8;  /* 柔和绿 */
+
+  /* 字体 - 系统字体栈 */
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI",
                "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
   --font-mono: "SFMono-Regular", "Cascadia Code", Consolas, monospace;
 
   /* 字号 */
-  --text-xs:   0.75rem;
-  --text-sm:   0.8125rem;
-  --text-base: 0.9375rem;
-  --text-lg:   1.125rem;
-  --text-xl:   1.25rem;
-  --text-2xl:  1.5rem;
+  --text-xs:   0.75rem;    /* 12px */
+  --text-sm:   0.8125rem;  /* 13px */
+  --text-base: 0.9375rem;  /* 15px */
+  --text-lg:   1.125rem;   /* 18px */
+  --text-xl:   1.25rem;    /* 20px */
+  --text-2xl:  1.5rem;     /* 24px */
 
-  /* 间距 */
+  /* 间距（4px 倍数） */
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -47,15 +54,21 @@
   --sp-8: 32px;
   --sp-10: 40px;
 
-  /* 圆角 */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
+  /* 圆角 - 更大更圆润（温馨舒适） */
+  --radius-sm: 8px;   /* 从4px加大 */
+  --radius-md: 12px;  /* 从6px加大 */
+  --radius-lg: 16px;  /* 从8px加大 */
+  --radius-xl: 20px;  /* 新增超大圆角 */
 
-  /* 阴影 */
-  --shadow-sm: 0 1px 2px rgba(15,15,15,0.06);
-  --shadow-md: 0 2px 8px rgba(15,15,15,0.08);
-  --shadow-lg: 0 8px 24px rgba(15,15,15,0.12);
+  /* 阴影 - 更柔和多层（温馨舒适） */
+  --shadow-sm: 0 2px 4px rgba(74, 72, 69, 0.04),
+               0 1px 2px rgba(74, 72, 69, 0.03);
+  --shadow-md: 0 4px 12px rgba(74, 72, 69, 0.06),
+               0 2px 4px rgba(74, 72, 69, 0.04);
+  --shadow-lg: 0 8px 24px rgba(74, 72, 69, 0.08),
+               0 4px 8px rgba(74, 72, 69, 0.05);
+  --shadow-xl: 0 12px 40px rgba(74, 72, 69, 0.10),
+               0 6px 12px rgba(74, 72, 69, 0.06);
 
   /* 动画 */
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
