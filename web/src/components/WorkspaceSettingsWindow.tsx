@@ -1,7 +1,7 @@
-import { BookOpen, Bot, Compass, FileText, GitBranch, KeyRound, Network, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, PenLine, RefreshCcw, Settings, X, BrainCircuit, Waypoints } from "lucide-react";
+import { BookOpen, Bot, Compass, FileText, GitBranch, KeyRound, LayoutDashboard, Network, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, PenLine, RefreshCcw, Settings, X, BrainCircuit, Waypoints } from "lucide-react";
 import type { ComponentType } from "react";
 
-type WorkspaceId = "setup" | "write" | "plot" | "relationships" | "characters" | "scenes" | "plotlines" | "world" | "agents" | "prompts" | "settings";
+type WorkspaceId = "dashboard" | "setup" | "write" | "plot" | "relationships" | "characters" | "scenes" | "plotlines" | "world" | "agents" | "prompts" | "settings";
 
 export function WorkspaceSettingsWindow({
   activeWorkspace,

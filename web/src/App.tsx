@@ -14,6 +14,7 @@ import { PromptLibrary } from "./components/prompts/PromptLibrary";
 import { CharacterGallery } from "./components/character/CharacterGallery";
 import { SceneKanban } from "./components/scene/SceneKanban";
 import { PlotlineManager } from "./components/plotline/PlotlineManager";
+import { ProgressDashboard } from "./components/dashboard/ProgressDashboard";
 import { useCharacters } from "./hooks/useCharacters";
 import { useScenes } from "./hooks/useScenes";
 import { usePlotlines } from "./hooks/usePlotlines";
@@ -39,6 +40,7 @@ import {
   FileText,
   GitBranch,
   KeyRound,
+  LayoutDashboard,
   Network,
   PanelRightClose,
   PanelRightOpen,
@@ -51,7 +53,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-type WorkspaceId = "setup" | "write" | "plot" | "relationships" | "world" | "agents" | "prompts" | "characters" | "scenes" | "plotlines" | "settings";
+type WorkspaceId = "dashboard" | "setup" | "write" | "plot" | "relationships" | "world" | "agents" | "prompts" | "characters" | "scenes" | "plotlines" | "settings";
 type RelationshipFlowTarget = "overview" | "line-editor" | "suggestion";
 
 const workspaceItems: Array<{
@@ -60,6 +62,7 @@ const workspaceItems: Array<{
   detail: string;
   icon: typeof BookOpen;
 }> = [
+  { id: "dashboard", label: "仪表板", detail: "进度总览", icon: LayoutDashboard },
   { id: "setup", label: "初设", detail: "作品定位", icon: BookOpen },
   { id: "write", label: "写作", detail: "章节生成", icon: PenLine },
   { id: "plot", label: "剧情线", detail: "节拍与伏笔", icon: GitBranch },
@@ -74,6 +77,7 @@ const workspaceItems: Array<{
 ];
 
 const workspaceGuides: Record<WorkspaceId, { cue: string; steps: string[] }> = {
+  dashboard: { cue: "创作进度一目了然", steps: ["查看总字数", "追踪进度", "解锁成就"] },
   setup: { cue: "先搭作品骨架", steps: ["填初设", "锁定卖点", "同步故事圣经"] },
   write: { cue: "正文生成流程", steps: ["填上下文", "生成提示词", "写入 WPS"] },
   plot: { cue: "剧情推进流程", steps: ["整理节拍", "检查伏笔", "安排下一章"] },
@@ -208,6 +212,25 @@ export default function App() {
   );
 
   const renderWorkspace = () => {
+    if (activeWorkspace === "dashboard") {
+      return (
+        <>
+          {featureHint && (
+            <div className="alert alert-info" role="alert" aria-live="polite" style={{margin: '0 32px 16px'}}>
+              {featureHint}
+            </div>
+          )}
+          <Panel title="进度仪表板" eyebrow="Progress Dashboard">
+            <ProgressDashboard
+              characters={characters.characters}
+              scenes={scenes.scenes}
+              plotlines={plotlines.plotlines}
+            />
+          </Panel>
+        </>
+      );
+    }
+
     if (activeWorkspace === "setup" || activeWorkspace === "world") {
       return (
         <>
