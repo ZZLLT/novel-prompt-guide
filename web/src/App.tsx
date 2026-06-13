@@ -13,8 +13,10 @@ import { WorkspaceSettingsWindow } from "./components/WorkspaceSettingsWindow";
 import { PromptLibrary } from "./components/prompts/PromptLibrary";
 import { CharacterGallery } from "./components/character/CharacterGallery";
 import { SceneKanban } from "./components/scene/SceneKanban";
+import { PlotlineManager } from "./components/plotline/PlotlineManager";
 import { useCharacters } from "./hooks/useCharacters";
 import { useScenes } from "./hooks/useScenes";
+import { usePlotlines } from "./hooks/usePlotlines";
 import { Panel } from "./components/ui";
 import { useCockpit } from "./hooks/useCockpit";
 import { useShortcuts, SHORTCUTS } from "./hooks/useShortcuts";
@@ -49,7 +51,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-type WorkspaceId = "setup" | "write" | "plot" | "relationships" | "world" | "agents" | "prompts" | "characters" | "scenes" | "settings";
+type WorkspaceId = "setup" | "write" | "plot" | "relationships" | "world" | "agents" | "prompts" | "characters" | "scenes" | "plotlines" | "settings";
 type RelationshipFlowTarget = "overview" | "line-editor" | "suggestion";
 
 const workspaceItems: Array<{
@@ -64,6 +66,7 @@ const workspaceItems: Array<{
   { id: "relationships", label: "人物关系", detail: "关系图谱", icon: Network },
   { id: "characters", label: "角色卡片", detail: "角色档案", icon: Bot },
   { id: "scenes", label: "场景看板", detail: "场景管理", icon: Waypoints },
+  { id: "plotlines", label: "剧情追踪", detail: "剧情线管理", icon: GitBranch },
   { id: "world", label: "世界设定", detail: "故事圣经", icon: Compass },
   { id: "agents", label: "AI 协作", detail: "多 Agent", icon: BrainCircuit },
   { id: "prompts", label: "提示词库", detail: "模板管理", icon: FileText },
@@ -77,6 +80,7 @@ const workspaceGuides: Record<WorkspaceId, { cue: string; steps: string[] }> = {
   relationships: { cue: "人物线流程", steps: ["打开图谱", "调整关系", "AI 建议入图"] },
   characters: { cue: "角色卡片流程", steps: ["创建角色", "填写档案", "管理关系"] },
   scenes: { cue: "场景管理流程", steps: ["创建场景", "安排顺序", "追踪进度"] },
+  plotlines: { cue: "剧情追踪流程", steps: ["创建剧情线", "添加关键节点", "关联场景"] },
   world: { cue: "世界设定流程", steps: ["建立规则", "检查代价", "回写设定"] },
   agents: { cue: "协作流程", steps: ["提出问题", "选择 Agent", "执行下一步"] },
   prompts: { cue: "提示词使用流程", steps: ["选择分类", "填充变量", "发送到AI"] },
@@ -113,6 +117,7 @@ export default function App() {
   const cockpit = useCockpit();
   const characters = useCharacters();
   const scenes = useScenes();
+  const plotlines = usePlotlines();
   const [isSetupOpen, setSetupOpen] = useState(() => new URLSearchParams(window.location.search).get("setup") !== "closed");
   const [isApiSettingsOpen, setApiSettingsOpen] = useState(() => new URLSearchParams(window.location.search).get("api") === "open");
   const [isWorkspaceSettingsOpen, setWorkspaceSettingsOpen] = useState(resolveInitialWorkspaceSettingsOpen);
@@ -351,6 +356,31 @@ export default function App() {
               onImport={scenes.importScenes}
               selectedId={scenes.selectedSceneId}
               availableCharacters={characters.characters.map((c) => ({ id: c.id, name: c.name }))}
+            />
+          </Panel>
+        </>
+      );
+    }
+
+    if (activeWorkspace === "plotlines") {
+      return (
+        <>
+          {featureHint && (
+            <div className="alert alert-info" role="alert" aria-live="polite" style={{margin: '0 32px 16px'}}>
+              {featureHint}
+            </div>
+          )}
+          <Panel title="剧情追踪" eyebrow="Plotline Tracker">
+            <PlotlineManager
+              plotlines={plotlines.plotlines}
+              scenes={scenes.scenes.map((s) => ({ id: s.id, title: s.title }))}
+              characters={characters.characters.map((c) => ({ id: c.id, name: c.name }))}
+              onAdd={plotlines.addPlotline}
+              onUpdate={plotlines.updatePlotline}
+              onDelete={plotlines.deletePlotline}
+              onToggleKeyPoint={plotlines.toggleKeyPoint}
+              onExport={plotlines.exportPlotlines}
+              onImport={plotlines.importPlotlines}
             />
           </Panel>
         </>

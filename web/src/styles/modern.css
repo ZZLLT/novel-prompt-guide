@@ -4495,6 +4495,312 @@ a:hover { text-decoration: underline; }
   color: var(--color-accent);
 }
 
+/* ===== Plotline Manager ===== */
+.plotline-manager {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+  height: 100%;
+  overflow: hidden;
+}
+
+.plotline-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.plotline-search {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  max-width: 300px;
+}
+
+.plotline-stats {
+  display: flex;
+  gap: var(--sp-4);
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-text-subtle);
+}
+
+.plotline-actions {
+  display: flex;
+  gap: var(--sp-2);
+  margin-left: auto;
+}
+
+.plotline-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.plotline-card {
+  background: var(--color-bg-elevated);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.plotline-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--color-bg);
+}
+
+.plotline-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--color-text-faint);
+  cursor: pointer;
+  transition: color 0.2s var(--ease);
+}
+
+.plotline-expand-btn:hover {
+  color: var(--color-text);
+}
+
+.plotline-color-indicator {
+  width: 4px;
+  height: 40px;
+  border-radius: 2px;
+}
+
+.plotline-card-title-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.plotline-card-badges {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+
+.plotline-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.plotline-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.plotline-card-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.plotline-card-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 120px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--color-bg-elevated);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  transition: width 0.3s var(--ease);
+}
+
+.progress-text {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-subtle);
+  min-width: 40px;
+  text-align: right;
+}
+
+.plotline-card-actions {
+  display: flex;
+  gap: var(--sp-1);
+}
+
+.plotline-card-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-faint);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+
+.plotline-card-actions button:hover {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.plotline-card-body {
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.plotline-description {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-subtle);
+  line-height: 1.6;
+}
+
+.plotline-keypoints,
+.plotline-scenes,
+.plotline-characters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.keypoints-title,
+.scenes-title,
+.characters-title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.keypoints-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.keypoint-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.keypoint-item.is-completed {
+  opacity: 0.6;
+}
+
+.keypoint-item.is-completed .keypoint-content strong {
+  text-decoration: line-through;
+}
+
+.keypoint-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.keypoint-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.keypoint-content strong {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  margin-bottom: var(--sp-1);
+}
+
+.keypoint-content p {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+  line-height: 1.5;
+}
+
+.scenes-chips,
+.characters-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.scene-chip,
+.character-chip {
+  padding: var(--sp-1) var(--sp-3);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.color-picker {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.color-option {
+  width: 36px;
+  height: 36px;
+  border: 3px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+
+.color-option:hover {
+  transform: scale(1.1);
+}
+
+.color-option.is-active {
+  border-color: var(--color-text);
+  box-shadow: 0 0 0 2px var(--color-bg-elevated);
+}
+
 /* ── StoryUniverseDeck ──────────────────────────────────────── */
 .universe-deck {
   background: var(--color-bg);
