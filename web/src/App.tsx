@@ -12,7 +12,9 @@ import { StoryUniverseDeck } from "./components/StoryUniverseDeck";
 import { WorkspaceSettingsWindow } from "./components/WorkspaceSettingsWindow";
 import { PromptLibrary } from "./components/prompts/PromptLibrary";
 import { CharacterGallery } from "./components/character/CharacterGallery";
+import { SceneKanban } from "./components/scene/SceneKanban";
 import { useCharacters } from "./hooks/useCharacters";
+import { useScenes } from "./hooks/useScenes";
 import { Panel } from "./components/ui";
 import { useCockpit } from "./hooks/useCockpit";
 import { useShortcuts, SHORTCUTS } from "./hooks/useShortcuts";
@@ -47,7 +49,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-type WorkspaceId = "setup" | "write" | "plot" | "relationships" | "world" | "agents" | "prompts" | "characters" | "settings";
+type WorkspaceId = "setup" | "write" | "plot" | "relationships" | "world" | "agents" | "prompts" | "characters" | "scenes" | "settings";
 type RelationshipFlowTarget = "overview" | "line-editor" | "suggestion";
 
 const workspaceItems: Array<{
@@ -61,6 +63,7 @@ const workspaceItems: Array<{
   { id: "plot", label: "剧情线", detail: "节拍与伏笔", icon: GitBranch },
   { id: "relationships", label: "人物关系", detail: "关系图谱", icon: Network },
   { id: "characters", label: "角色卡片", detail: "角色档案", icon: Bot },
+  { id: "scenes", label: "场景看板", detail: "场景管理", icon: Waypoints },
   { id: "world", label: "世界设定", detail: "故事圣经", icon: Compass },
   { id: "agents", label: "AI 协作", detail: "多 Agent", icon: BrainCircuit },
   { id: "prompts", label: "提示词库", detail: "模板管理", icon: FileText },
@@ -73,6 +76,7 @@ const workspaceGuides: Record<WorkspaceId, { cue: string; steps: string[] }> = {
   plot: { cue: "剧情推进流程", steps: ["整理节拍", "检查伏笔", "安排下一章"] },
   relationships: { cue: "人物线流程", steps: ["打开图谱", "调整关系", "AI 建议入图"] },
   characters: { cue: "角色卡片流程", steps: ["创建角色", "填写档案", "管理关系"] },
+  scenes: { cue: "场景管理流程", steps: ["创建场景", "安排顺序", "追踪进度"] },
   world: { cue: "世界设定流程", steps: ["建立规则", "检查代价", "回写设定"] },
   agents: { cue: "协作流程", steps: ["提出问题", "选择 Agent", "执行下一步"] },
   prompts: { cue: "提示词使用流程", steps: ["选择分类", "填充变量", "发送到AI"] },
@@ -108,6 +112,7 @@ function updateWorkspaceSearch(patch: Partial<{ assistant: "open" | "closed"; ra
 export default function App() {
   const cockpit = useCockpit();
   const characters = useCharacters();
+  const scenes = useScenes();
   const [isSetupOpen, setSetupOpen] = useState(() => new URLSearchParams(window.location.search).get("setup") !== "closed");
   const [isApiSettingsOpen, setApiSettingsOpen] = useState(() => new URLSearchParams(window.location.search).get("api") === "open");
   const [isWorkspaceSettingsOpen, setWorkspaceSettingsOpen] = useState(resolveInitialWorkspaceSettingsOpen);
@@ -320,6 +325,32 @@ export default function App() {
               onExport={characters.exportCharacters}
               onImport={characters.importCharacters}
               selectedId={characters.selectedCharacterId}
+            />
+          </Panel>
+        </>
+      );
+    }
+
+    if (activeWorkspace === "scenes") {
+      return (
+        <>
+          {featureHint && (
+            <div className="alert alert-info" role="alert" aria-live="polite" style={{margin: '0 32px 16px'}}>
+              {featureHint}
+            </div>
+          )}
+          <Panel title="场景看板" eyebrow="Scene Management">
+            <SceneKanban
+              scenes={scenes.scenes}
+              onAdd={scenes.addScene}
+              onUpdate={scenes.updateScene}
+              onDelete={scenes.deleteScene}
+              onMove={scenes.moveScene}
+              onSelect={scenes.setSelectedSceneId}
+              onExport={scenes.exportScenes}
+              onImport={scenes.importScenes}
+              selectedId={scenes.selectedSceneId}
+              availableCharacters={characters.characters.map((c) => ({ id: c.id, name: c.name }))}
             />
           </Panel>
         </>
