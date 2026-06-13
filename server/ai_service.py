@@ -659,3 +659,116 @@ def get_top_library_prompts(limit: int = 10) -> List[Dict[str, Any]]:
         return []
     
     return prompt_library.get_top_prompts(limit)
+
+
+# ===== 智能建议系统 =====
+
+try:
+    from suggestion_system import suggestion_analyzer
+    from scene_detector import scene_detector
+    SUGGESTION_SYSTEM_AVAILABLE = True
+    print("✅ 智能建议系统已加载")
+except Exception as e:
+    SUGGESTION_SYSTEM_AVAILABLE = False
+    print(f"⚠️ 智能建议系统加载失败: {e}")
+
+
+async def get_smart_suggestions(context: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    获取智能建议
+    
+    context: {
+        "characters": [...],
+        "scenes": [...],
+        "plotlines": [...],
+        "summary": {...}
+    }
+    
+    返回: {
+        "suggestions": [...],  # 建议列表
+        "scene": {...},        # 当前创作场景
+        "priority_actions": [...]  # 优先操作
+    }
+    """
+    if not SUGGESTION_SYSTEM_AVAILABLE:
+        return {
+            "suggestions": [],
+            "scene": {"scene": "general", "confidence": 0},
+            "priority_actions": []
+        }
+    
+    # 1. 分析上下文，生成建议
+    suggestions = suggestion_analyzer.analyze_context(context)
+    
+    # 2. 识别当前场景（如果有用户输入）
+    user_input = context.get("user_input", "")
+    scene_info = scene_detector.detect_scene(user_input, context)
+    
+    # 3. 提取优先操作（critical和warning类型的建议）
+    priority_actions = [
+        s for s in suggestions
+        if s["type"] in ["critical", "warning"]
+    ]
+    
+    return {
+        "suggestions": suggestions,
+        "scene": scene_info,
+        "priority_actions": priority_actions,
+        "total_count": len(suggestions)
+    }
+
+
+async def get_contextual_recommendations(
+    user_input: str,
+    context: Dict[str, Any]
+) -> List[Dict[str, Any]]:
+    """
+    根据用户输入和上下文，提供情境化推荐
+    
+    返回推荐的提示词或操作
+    """
+    if not SUGGESTION_SYSTEM_AVAILABLE:
+        return []
+    
+    # 检测场景
+    scene_info = scene_detector.detect_scene(user_input, context)
+    
+    recommendations = []
+    
+    # 根据场景推荐操作
+    for suggestion_text in scene_info["suggestions"]:
+        recommendations.append({
+            "text": suggestion_text,
+            "scene": scene_info["scene"],
+            "confidence": scene_info["confidence"]
+        })
+    
+    # 如果是提示词库可用，推荐相关提示词
+    if PROMPT_LIBRARY_AVAILABLE:
+        # 根据场景映射到任务类型
+        scene_to_task = {
+            "character_creation": "character",
+            "scene_writing": "scene",
+            "planning": "outline",
+            "continuing": "continue",
+            "polishing": "polish"
+        }
+        
+        task_type = scene_to_task.get(scene_info["scene"])
+        if task_type:
+            # 获取该类型最热门的提示词
+            prompts = prompt_library.get_prompts_by_category(
+                {"character": "人设生成器", "scene": "细纲生成", 
+                 "outline": "大纲相关", "continue": "续写", 
+                 "polish": "润色"}.get(task_type, "")
+            )
+            
+            if prompts:
+                top_prompt = sorted(prompts, key=lambda x: x["usage"], reverse=True)[0]
+                recommendations.append({
+                    "text": f"使用专业提示词：{top_prompt['title']}",
+                    "prompt": top_prompt,
+                    "type": "library_prompt"
+                })
+    
+    return recommendations

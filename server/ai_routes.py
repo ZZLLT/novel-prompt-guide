@@ -222,3 +222,34 @@ async def get_top_library_prompts(limit: int = 10):
     """获取最热门的提示词"""
     prompts = ai_service.get_top_library_prompts(limit)
     return {"prompts": prompts}
+
+
+# ===== 智能建议端点 =====
+
+class SmartSuggestionsRequest(BaseModel):
+    context: Dict[str, Any]
+
+class RecommendationsRequest(BaseModel):
+    user_input: str
+    context: Dict[str, Any]
+
+@router.post("/suggestions/smart")
+async def get_smart_suggestions(request: SmartSuggestionsRequest):
+    """获取智能建议"""
+    try:
+        result = await ai_service.get_smart_suggestions(request.context)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/suggestions/contextual")
+async def get_contextual_recommendations(request: RecommendationsRequest):
+    """获取情境化推荐"""
+    try:
+        recommendations = await ai_service.get_contextual_recommendations(
+            request.user_input,
+            request.context
+        )
+        return {"recommendations": recommendations}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
