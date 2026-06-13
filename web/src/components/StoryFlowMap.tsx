@@ -1340,17 +1340,13 @@ export function StoryFlowMap({
               onPointerUp={stopRelationshipWindowDrag}
               onPointerCancel={stopRelationshipWindowDrag}
             >
-              <div>
-                <span>人物关系</span>
-                <strong>人物关系窗口</strong>
-              </div>
-              <div className="relationship-toolbar">
-                <Move aria-hidden="true" size={16} />
-                <span>ReactFlow 图谱</span>
-                <button type="button" aria-label="关闭人物关系窗口" onPointerDown={(event) => event.stopPropagation()} onClick={() => setRelationshipWindowOpen(false)}>
-                  <X aria-hidden="true" size={15} />
-                </button>
-              </div>
+              <strong>
+                <Network aria-hidden="true" size={20} />
+                人物关系图谱
+              </strong>
+              <button type="button" aria-label="关闭人物关系窗口" onPointerDown={(event) => event.stopPropagation()} onClick={() => setRelationshipWindowOpen(false)}>
+                <X aria-hidden="true" size={16} />
+              </button>
             </header>
             <div className="relationship-window-layout">
               <div className="relationship-canvas" aria-label="人物关系图谱">

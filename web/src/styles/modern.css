@@ -2128,30 +2128,95 @@ a:hover { text-decoration: underline; }
   transition: border-color var(--duration) var(--ease);
 }
 .relationship-launch-panel > div button:hover { border-color: var(--color-accent); color: var(--color-accent); }
-.relationship-window-layer { position: fixed; inset: 0; pointer-events: none; z-index: 30; }
-.relationship-window {
-  position: absolute;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+.relationship-window-layer {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
   pointer-events: auto;
-  display: flex; flex-direction: column;
-  overflow: hidden;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s var(--ease);
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.relationship-window {
+  position: relative;
+  background: var(--color-bg-elevated);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 90vw;
+  max-width: 1600px;
+  height: 85vh;
+  max-height: 900px;
+  animation: slideUp 0.3s var(--ease);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .relationship-window-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: var(--sp-3) var(--sp-4);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 2px solid var(--color-border);
+  background: linear-gradient(135deg, var(--color-bg-elevated) 0%, var(--color-bg-subtle) 100%);
   cursor: move;
 }
-.relationship-window-header strong { font-size: var(--text-sm); font-weight: 600; color: var(--color-text); }
+
+.relationship-window-header strong {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  letter-spacing: -0.01em;
+}
+
 .relationship-window-header button {
-  width: 24px; height: 24px;
-  display: flex; align-items: center; justify-content: center;
-  background: transparent; border: 1px solid var(--color-border); border-radius: var(--radius-sm);
-  color: var(--color-text-subtle); cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-subtle);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-subtle);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+
+.relationship-window-header button:hover {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  color: white;
+  transform: rotate(90deg);
 }
 .relationship-toolbar {
   display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap;
