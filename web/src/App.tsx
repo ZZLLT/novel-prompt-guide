@@ -10,6 +10,7 @@ import { SkipToContent } from "./components/SkipToContent";
 import { StoryFlowMap } from "./components/StoryFlowMap";
 import { StoryUniverseDeck } from "./components/StoryUniverseDeck";
 import { WorkspaceSettingsWindow } from "./components/WorkspaceSettingsWindow";
+import { PromptLibrary } from "./components/prompts/PromptLibrary";
 import { Panel } from "./components/ui";
 import { useCockpit } from "./hooks/useCockpit";
 import { useShortcuts, SHORTCUTS } from "./hooks/useShortcuts";
@@ -29,6 +30,7 @@ import {
   BrainCircuit,
   Compass,
   FileOutput,
+  FileText,
   GitBranch,
   KeyRound,
   Network,
@@ -43,7 +45,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-type WorkspaceId = "setup" | "write" | "plot" | "relationships" | "world" | "agents" | "settings";
+type WorkspaceId = "setup" | "write" | "plot" | "relationships" | "world" | "agents" | "prompts" | "settings";
 type RelationshipFlowTarget = "overview" | "line-editor" | "suggestion";
 
 const workspaceItems: Array<{
@@ -58,6 +60,7 @@ const workspaceItems: Array<{
   { id: "relationships", label: "人物关系", detail: "关系图谱", icon: Network },
   { id: "world", label: "世界设定", detail: "故事圣经", icon: Compass },
   { id: "agents", label: "AI 协作", detail: "多 Agent", icon: Bot },
+  { id: "prompts", label: "提示词库", detail: "模板管理", icon: FileText },
   { id: "settings", label: "设置", detail: "API 与模型", icon: Settings },
 ];
 
@@ -68,6 +71,7 @@ const workspaceGuides: Record<WorkspaceId, { cue: string; steps: string[] }> = {
   relationships: { cue: "人物线流程", steps: ["打开图谱", "调整关系", "AI 建议入图"] },
   world: { cue: "世界设定流程", steps: ["建立规则", "检查代价", "回写设定"] },
   agents: { cue: "协作流程", steps: ["提出问题", "选择 Agent", "执行下一步"] },
+  prompts: { cue: "提示词使用流程", steps: ["选择分类", "填充变量", "发送到AI"] },
   settings: { cue: "模型配置流程", steps: ["填入地址", "获取模型", "分配角色模型"] },
 };
 
@@ -267,6 +271,27 @@ export default function App() {
                 </button>
               </div>
             </div>
+          </Panel>
+        </>
+      );
+    }
+
+    if (activeWorkspace === "prompts") {
+      return (
+        <>
+          {featureHint && (
+            <div className="alert alert-info" role="alert" aria-live="polite" style={{margin: '0 32px 16px'}}>
+              {featureHint}
+            </div>
+          )}
+          <Panel title="提示词库" eyebrow="Prompt Templates">
+            <PromptLibrary
+              onSendToAssistant={(content) => {
+                // TODO: 将内容发送到AI助手
+                console.log("发送到AI助手:", content);
+                alert("提示词已准备好，请在AI助手中使用！");
+              }}
+            />
           </Panel>
         </>
       );
