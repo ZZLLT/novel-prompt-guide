@@ -1,6 +1,12 @@
 import { StatusPill } from "./ui";
 import type { AgentRuntime, AssistantStatus, ChatMessage } from "../hooks/useCockpit";
 import { Lightbulb, ListChecks, Send, WandSparkles } from "lucide-react";
+import { AIAssistantInput } from "./AIAssistantInput";
+import { useState, useEffect } from "react";
+import { usePromptLibrary } from "../hooks/usePromptLibrary";
+import { getSmartRecommendations } from "../utils/sceneDetection";
+import { SmartRecommendation } from "./prompts/SmartRecommendation";
+import type { PromptTemplate } from "../types/prompts";
 
 export function AgentCommandDeck({
   agents,
@@ -29,6 +35,37 @@ export function AgentCommandDeck({
   onChatInput: (value: string) => void;
   onSend: () => void;
 }) {
+  const [showRecommendation, setShowRecommendation] = useState(false);
+  const { allTemplates, useTemplate } = usePromptLibrary();
+
+  // 当输入超过5个字符时，显示智能推荐
+  useEffect(() => {
+    if (assistantInput.length >= 5) {
+      setShowRecommendation(true);
+    } else {
+      setShowRecommendation(false);
+    }
+  }, [assistantInput]);
+
+  const recommendations = getSmartRecommendations(assistantInput, allTemplates);
+
+  const handleSelectTemplate = (template: PromptTemplate) => {
+    // 填充模板内容
+    onAssistantInput(template.content);
+    setShowRecommendation(false);
+    // 记录使用
+    useTemplate(template.id, template.content);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (assistantInput.trim() && !assistantBusy) {
+        onAskAssistant();
+      }
+    }
+  };
+
   const activeAgent = agents.find((agent) => agent.status === "working")
     ?? agents.find((agent) => agent.status === "queued")
     ?? agents[0];
@@ -81,6 +118,19 @@ export function AgentCommandDeck({
             <p className={`message-${message.from}`} key={message.id}>{message.text}</p>
           ))}
         </div>
+
+        {/* 智能推荐 */}
+        {showRecommendation && recommendations.scene !== "unknown" && (
+          <SmartRecommendation
+            scene={recommendations.scene}
+            sceneDescription={recommendations.sceneDescription}
+            recommendedTemplates={recommendations.recommendedTemplates}
+            mostUsedTemplate={recommendations.mostUsedTemplate}
+            favoriteTemplates={recommendations.favoriteTemplates}
+            onSelectTemplate={handleSelectTemplate}
+          />
+        )}
+
         <label className="assistant-input">
           <span>AI 助手提问</span>
           <textarea
@@ -88,8 +138,14 @@ export function AgentCommandDeck({
             value={assistantInput}
             maxLength={600}
             onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => onAssistantInput(event.target.value)}
+            onKeyPress={handleKeyPress}
             placeholder="例如：基于当前阶段，给我一个更省 token 的提示词和下一步优化顺序。"
           />
+          {assistantInput.length >= 5 && (
+            <span className="input-hint">
+              {recommendations.scene !== "unknown" ? "✨ 检测到写作场景，查看智能推荐 ↑" : "Shift+Enter 换行，Enter 发送"}
+            </span>
+          )}
         </label>
         <button type="button" aria-label="询问AI助手" disabled={!assistantInput.trim() || assistantBusy} onClick={() => onAskAssistant()}>
           <Lightbulb aria-hidden="true" size={16} />
