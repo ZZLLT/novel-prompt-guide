@@ -6467,3 +6467,291 @@ a:hover { text-decoration: underline; }
   border-left: 4px solid var(--color-accent);
   color: var(--color-text);
 }
+
+
+/* ===== AI智能建议面板 ===== */
+
+.ai-suggestions-panel {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.ai-suggestions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ai-suggestions-header h3 {
+  font-size: var(--text-base);
+  margin: 0;
+}
+
+.ai-suggestions-collapsed {
+  position: fixed;
+  bottom: var(--sp-4);
+  right: var(--sp-4);
+  z-index: 30;
+}
+
+.ai-suggestions-loading {
+  padding: var(--sp-6);
+  text-align: center;
+  color: var(--color-text-subtle);
+}
+
+.ai-suggestions-error {
+  padding: var(--sp-3);
+  background: var(--color-error);
+  color: white;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-sm);
+}
+
+.ai-suggestions-scene {
+  padding: var(--sp-3);
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-md);
+}
+
+.ai-suggestions-priority {
+  padding: var(--sp-3);
+  background: var(--color-accent-subtle);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+}
+
+.ai-suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.suggestion-card {
+  display: flex;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid;
+  border-radius: var(--radius-md);
+  transition: all var(--duration) var(--ease);
+}
+
+.suggestion-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.suggestion-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: white;
+}
+
+.suggestion-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.suggestion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.suggestion-title {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.suggestion-description {
+  font-size: var(--text-sm);
+  color: var(--color-text-subtle);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.suggestion-action {
+  align-self: flex-start;
+  margin-top: var(--sp-2);
+  gap: var(--sp-1);
+}
+
+
+/* ===== AI智能命令输入 ===== */
+
+.smart-command-container {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.quick-commands {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.quick-commands-label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-subtle);
+}
+
+.quick-commands-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.smart-command-input-form {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+.smart-command-input {
+  flex: 1;
+  padding: var(--sp-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: all var(--duration) var(--ease);
+}
+
+.smart-command-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-subtle);
+}
+
+.smart-command-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.command-result {
+  padding: var(--sp-3);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  animation: slideDown var(--duration) var(--ease);
+}
+
+.command-result.success {
+  background: hsl(142, 76%, 95%);
+  border: 1px solid hsl(142, 76%, 85%);
+}
+
+.command-result.error {
+  background: hsl(0, 84%, 95%);
+  border: 1px solid hsl(0, 84%, 85%);
+}
+
+.command-result-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.command-result-message {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.command-result-data {
+  background: var(--color-bg-muted);
+  padding: var(--sp-3);
+  border-radius: var(--radius-sm);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.command-result-data pre {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.command-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+  text-align: center;
+  padding: var(--sp-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.command-hint kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  background: var(--color-bg-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ===== AI助手抽屉内容布局 ===== */
+
+.assistant-drawer-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+  overflow-y: auto;
+  height: calc(100% - 60px); /* 减去header高度 */
+}
+
+/* 确保助手抽屉有滚动 */
+.assistant-drawer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* 优化助手抽屉卡片间距 */
+.assistant-drawer-content > * {
+  flex-shrink: 0;
+}

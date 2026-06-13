@@ -16,6 +16,8 @@ import { SceneKanban } from "./components/scene/SceneKanban";
 import { PlotlineManager } from "./components/plotline/PlotlineManager";
 import { ProgressDashboard } from "./components/dashboard/ProgressDashboard";
 import { AIChatPanel } from "./components/ai/AIChatPanel";
+import { AISuggestions } from "./components/ai/AISuggestions";
+import { SmartCommandInput } from "./components/ai/SmartCommandInput";
 import { useCharacters } from "./hooks/useCharacters";
 import { useScenes } from "./hooks/useScenes";
 import { usePlotlines } from "./hooks/usePlotlines";
@@ -732,7 +734,44 @@ export default function App() {
               收起 AI 助手
             </button>
           </header>
-          {agentDeck}
+          <div className="assistant-drawer-content">
+            {/* 智能命令输入 */}
+            <SmartCommandInput
+              context={{
+                workspace: activeWorkspace,
+                summary: {
+                  characterCount: characters.characters.length,
+                  sceneCount: scenes.scenes.length,
+                  plotlineCount: plotlines.plotlines.length,
+                },
+              }}
+              onResult={(result) => {
+                if (result.success) {
+                  showFeatureHint(`✅ ${result.message}`);
+                }
+              }}
+            />
+
+            {/* AI智能建议 */}
+            <AISuggestions
+              context={{
+                characters: characters.characters,
+                scenes: scenes.scenes,
+                plotlines: plotlines.plotlines,
+                summary: {
+                  characterCount: characters.characters.length,
+                  sceneCount: scenes.scenes.length,
+                  plotlineCount: plotlines.plotlines.length,
+                },
+              }}
+              onExecuteAction={(action) => {
+                showFeatureHint(`执行: ${action.command}`);
+              }}
+            />
+
+            {/* Agent Deck */}
+            {agentDeck}
+          </div>
         </aside>
       ) : null}
 
