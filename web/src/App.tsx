@@ -15,6 +15,7 @@ import { CharacterGallery } from "./components/character/CharacterGallery";
 import { SceneKanban } from "./components/scene/SceneKanban";
 import { PlotlineManager } from "./components/plotline/PlotlineManager";
 import { ProgressDashboard } from "./components/dashboard/ProgressDashboard";
+import { AIChatPanel } from "./components/ai/AIChatPanel";
 import { useCharacters } from "./hooks/useCharacters";
 import { useScenes } from "./hooks/useScenes";
 import { usePlotlines } from "./hooks/usePlotlines";
@@ -125,6 +126,10 @@ export default function App() {
   const [isSetupOpen, setSetupOpen] = useState(() => new URLSearchParams(window.location.search).get("setup") !== "closed");
   const [isApiSettingsOpen, setApiSettingsOpen] = useState(() => new URLSearchParams(window.location.search).get("api") === "open");
   const [isWorkspaceSettingsOpen, setWorkspaceSettingsOpen] = useState(resolveInitialWorkspaceSettingsOpen);
+  const [isAIChatOpen, setAIChatOpen] = useState(false);
+
+  const handleOpenAIChat = () => setAIChatOpen(true);
+  const handleCloseAIChat = () => setAIChatOpen(false);
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceId>(resolveInitialWorkspace);
   const [isAssistantOpen, setAssistantOpen] = useState(resolveInitialAssistantOpen);
   const [isRailCollapsed, setRailCollapsed] = useState(resolveInitialRailCollapsed);
@@ -557,8 +562,8 @@ export default function App() {
     {
       ...SHORTCUTS.COMMAND_PALETTE,
       callback: () => {
-        // Toggle assistant as command palette for now
-        toggleAssistant();
+        // Toggle AI chat panel
+        setAIChatOpen((prev) => !prev);
       },
     },
     {
@@ -572,6 +577,17 @@ export default function App() {
       },
     },
   ]);
+
+  // AI Context - 为AI提供当前项目状态
+  const aiContext = {
+    workspace: activeWorkspace,
+    summary: {
+      characterCount: characters.characters.length,
+      sceneCount: scenes.scenes.length,
+      plotlineCount: plotlines.plotlines.length,
+      totalWords: scenes.scenes.reduce((sum, s) => sum + s.wordCount, 0),
+    },
+  };
 
   const getWorkspaceFlowAction = (step: string) => {
     if (activeWorkspace === "relationships") {
@@ -601,6 +617,10 @@ export default function App() {
           <h1>长篇小说工作台</h1>
         </div>
         <div className="top-command-actions">
+          <button type="button" aria-label="打开AI对话" onClick={handleOpenAIChat}>
+            <Sparkles aria-hidden="true" size={16} />
+            AI 对话 (Cmd+K)
+          </button>
           <button type="button" aria-label="打开小说初设引导" onClick={() => setSetupOpen(true)}>
             <BookOpen aria-hidden="true" size={16} />
             初设引导
@@ -764,6 +784,13 @@ export default function App() {
       {openWindow === 'planner' && <ChapterPlannerWindow onClose={closeFeatureWindow} />}
       {openWindow === 'hooks' && <HookLedgerWindow onClose={closeFeatureWindow} />}
       {openWindow === 'audit' && <AuditWindow onClose={closeFeatureWindow} />}
+
+      {/* AI对话面板 */}
+      <AIChatPanel
+        context={aiContext}
+        isOpen={isAIChatOpen}
+        onClose={handleCloseAIChat}
+      />
     </main>
     </>
   );
