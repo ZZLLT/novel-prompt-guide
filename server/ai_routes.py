@@ -178,3 +178,47 @@ async def ai_command(request: CommandRequest):
             "error": str(e),
             "action_type": "error"
         }
+
+
+# ===== 提示词库端点 =====
+
+class LibraryGenerateRequest(BaseModel):
+    task_type: str  # character, scene, outline, continue, polish, expand, title, summary, worldview
+    user_input: str
+    context: Optional[Dict[str, Any]] = None
+
+@router.post("/library/generate")
+async def ai_library_generate(request: LibraryGenerateRequest):
+    """使用提示词库生成内容"""
+    try:
+        result = await ai_service.generate_with_library_prompt(
+            request.task_type,
+            request.user_input,
+            request.context
+        )
+        return {"result": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/library/statistics")
+async def get_library_statistics():
+    """获取提示词库统计信息"""
+    return ai_service.get_library_statistics()
+
+@router.get("/library/categories")
+async def get_library_categories():
+    """获取提示词库分类"""
+    categories = ai_service.get_library_categories()
+    return {"categories": categories}
+
+@router.get("/library/search")
+async def search_library_prompts(keyword: str):
+    """搜索提示词库"""
+    results = ai_service.search_library_prompts(keyword)
+    return {"results": results}
+
+@router.get("/library/top")
+async def get_top_library_prompts(limit: int = 10):
+    """获取最热门的提示词"""
+    prompts = ai_service.get_top_library_prompts(limit)
+    return {"prompts": prompts}

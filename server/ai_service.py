@@ -14,6 +14,15 @@ if sys.stdout.encoding != 'utf-8':
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
+# 导入提示词库
+try:
+    from prompt_library import prompt_library
+    PROMPT_LIBRARY_AVAILABLE = True
+    print(f"✅ 提示词库已加载: {prompt_library.get_statistics()['total_prompts']} 个专业提示词")
+except Exception as e:
+    PROMPT_LIBRARY_AVAILABLE = False
+    print(f"⚠️ 提示词库加载失败: {e}")
+
 # 初始化OpenAI客户端
 client = None
 current_config = {
@@ -568,3 +577,85 @@ async def analyze_consistency(entities: List[Dict[str, Any]]) -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail="Failed to parse AI response as JSON")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analyze consistency failed: {str(e)}")
+
+
+# ===== 提示词库增强功能 =====
+
+async def generate_with_library_prompt(
+    task_type: str,
+    user_input: str,
+    context: Optional[Dict[str, Any]] = None
+) -> str:
+    """
+    使用提示词库生成内容
+    
+    task_type: character, scene, outline, continue, polish, expand, title, summary, worldview
+    user_input: 用户输入的需求
+    context: 上下文信息
+    """
+    if not client:
+        raise HTTPException(status_code=500, detail="AI client not initialized")
+    
+    if not PROMPT_LIBRARY_AVAILABLE:
+        raise HTTPException(status_code=500, detail="提示词库未加载")
+    
+    # 获取专业提示词
+    library_prompt = prompt_library.get_prompt_for_task(task_type, context)
+    
+    if not library_prompt:
+        raise HTTPException(status_code=404, detail=f"未找到 {task_type} 类型的提示词")
+    
+    # 替换提示词中的变量
+    library_prompt = library_prompt.replace("${核心脑洞}", user_input)
+    library_prompt = library_prompt.replace("${小说类型}", context.get("novel_type", "") if context else "")
+    library_prompt = library_prompt.replace("${核心卖点}", user_input)
+    library_prompt = library_prompt.replace("${核心设定}", user_input)
+    
+    try:
+        response = await client.chat.completions.create(
+            model=current_config["model"],
+            messages=[
+                {"role": "user", "content": library_prompt}
+            ],
+            temperature=0.8,
+            max_tokens=4000
+        )
+        
+        return response.choices[0].message.content
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Generate with library prompt failed: {str(e)}")
+
+
+def get_library_statistics() -> Dict[str, Any]:
+    """获取提示词库统计信息"""
+    if not PROMPT_LIBRARY_AVAILABLE:
+        return {"available": False, "error": "提示词库未加载"}
+    
+    return {
+        "available": True,
+        **prompt_library.get_statistics()
+    }
+
+
+def search_library_prompts(keyword: str) -> List[Dict[str, Any]]:
+    """搜索提示词库"""
+    if not PROMPT_LIBRARY_AVAILABLE:
+        return []
+    
+    return prompt_library.search_prompts(keyword)
+
+
+def get_library_categories() -> List[str]:
+    """获取提示词库分类"""
+    if not PROMPT_LIBRARY_AVAILABLE:
+        return []
+    
+    return prompt_library.get_categories()
+
+
+def get_top_library_prompts(limit: int = 10) -> List[Dict[str, Any]]:
+    """获取最热门的提示词"""
+    if not PROMPT_LIBRARY_AVAILABLE:
+        return []
+    
+    return prompt_library.get_top_prompts(limit)
