@@ -1,7 +1,12 @@
 /**
- * Button Showcase
+ * 组件展示页
  *
- * 演示 shadcn/ui 组件库的所有已安装组件
+ * 这是一个shadcn/ui组件库的展示页面，用于：
+ * 1. 演示已安装的shadcn/ui组件效果
+ * 2. 作为组件使用参考文档
+ * 3. 供开发者测试和预览组件
+ *
+ * 注意：这个页面仅用于展示，不会影响主应用功能
  */
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,21 +24,76 @@ import {
   Loader2,
   Mail,
   Lock,
+  Info,
 } from "lucide-react";
 
 export function ButtonShowcase() {
   return (
-    <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
-      <h1 style={{ fontSize: "2rem", fontWeight: "bold", marginBottom: "2rem" }}>
-        Button 组件展示
-      </h1>
+    <div style={{ padding: "3rem 2rem", maxWidth: "1200px", margin: "0 auto", background: "var(--color-bg)" }}>
+      {/* 页面标题和说明 */}
+      <div style={{ marginBottom: "3rem", textAlign: "center" }}>
+        <div style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          padding: "0.5rem 1rem",
+          background: "var(--color-warm-blue)",
+          borderRadius: "var(--radius-lg)",
+          marginBottom: "1rem"
+        }}>
+          <Info size={16} style={{ color: "var(--color-accent)" }} />
+          <span style={{ fontSize: "var(--text-sm)", color: "var(--color-accent)", fontWeight: 600 }}>
+            shadcn/ui 组件展示
+          </span>
+        </div>
+        <h1 style={{
+          fontSize: "2.5rem",
+          fontWeight: "600",
+          marginBottom: "1rem",
+          color: "var(--color-text)",
+          letterSpacing: "-0.02em"
+        }}>
+          组件库展示页
+        </h1>
+        <p style={{
+          fontSize: "var(--text-base)",
+          color: "var(--color-text-subtle)",
+          maxWidth: "600px",
+          margin: "0 auto",
+          lineHeight: "1.6"
+        }}>
+          本页面展示了已安装的 shadcn/ui 组件效果，供开发者参考使用。
+          这些组件基于 Radix UI，具有完整的无障碍支持和丰富的样式变体。
+        </p>
+      </div>
 
       {/* Variants */}
-      <section style={{ marginBottom: "3rem" }}>
-        <h2 style={{ fontSize: "1.5rem", fontWeight: "600", marginBottom: "1rem" }}>
-          变体 (Variants)
+      <section style={{
+        marginBottom: "3rem",
+        padding: "var(--sp-6)",
+        background: "var(--color-bg-elevated)",
+        border: "2px solid var(--color-border)",
+        borderRadius: "var(--radius-lg)",
+        boxShadow: "var(--shadow-sm)"
+      }}>
+        <h2 style={{
+          fontSize: "1.5rem",
+          fontWeight: "600",
+          marginBottom: "0.5rem",
+          color: "var(--color-text)",
+          letterSpacing: "-0.01em"
+        }}>
+          按钮变体 (Button Variants)
         </h2>
-        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+        <p style={{
+          fontSize: "var(--text-sm)",
+          color: "var(--color-text-subtle)",
+          marginBottom: "1.5rem",
+          lineHeight: "1.6"
+        }}>
+          6种按钮样式，适用于不同的使用场景
+        </p>
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
           <Button variant="default">Default</Button>
           <Button variant="destructive">Destructive</Button>
           <Button variant="outline">Outline</Button>
@@ -44,10 +104,31 @@ export function ButtonShowcase() {
       </section>
 
       {/* Sizes */}
-      <section style={{ marginBottom: "3rem" }}>
-        <h2 style={{ fontSize: "1.5rem", fontWeight: "600", marginBottom: "1rem" }}>
-          尺寸 (Sizes)
+      <section style={{
+        marginBottom: "3rem",
+        padding: "var(--sp-6)",
+        background: "var(--color-bg-elevated)",
+        border: "2px solid var(--color-border)",
+        borderRadius: "var(--radius-lg)",
+        boxShadow: "var(--shadow-sm)"
+      }}>
+        <h2 style={{
+          fontSize: "1.5rem",
+          fontWeight: "600",
+          marginBottom: "0.5rem",
+          color: "var(--color-text)",
+          letterSpacing: "-0.01em"
+        }}>
+          按钮尺寸 (Button Sizes)
         </h2>
+        <p style={{
+          fontSize: "var(--text-sm)",
+          color: "var(--color-text-subtle)",
+          marginBottom: "1.5rem",
+          lineHeight: "1.6"
+        }}>
+          4种尺寸选项，根据界面层级选择合适的大小
+        </p>
         <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
           <Button size="sm">Small</Button>
           <Button size="default">Default</Button>
