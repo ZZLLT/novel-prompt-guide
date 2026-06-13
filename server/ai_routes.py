@@ -7,17 +7,7 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import json
 
-from .ai_service import (
-    chat,
-    chat_stream,
-    generate_character,
-    generate_scene,
-    generate_plotline,
-    expand_content,
-    rewrite_content,
-    summarize_content,
-    analyze_consistency
-)
+import ai_service
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -69,7 +59,7 @@ async def ai_chat(request: ChatRequest):
     """普通对话"""
     try:
         messages = [{"role": m.role, "content": m.content} for m in request.messages]
-        response = await chat(messages, request.context)
+        response = await ai_service.chat(messages, request.context)
         return {"response": response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -80,7 +70,7 @@ async def ai_chat_stream(request: ChatRequest):
     async def generate():
         try:
             messages = [{"role": m.role, "content": m.content} for m in request.messages]
-            async for chunk in chat_stream(messages, request.context):
+            async for chunk in ai_service.chat_stream(messages, request.context):
                 yield f"data: {json.dumps({'delta': chunk})}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as e:
@@ -94,7 +84,7 @@ async def ai_chat_stream(request: ChatRequest):
 async def ai_generate_character(request: GenerateCharacterRequest):
     """生成角色"""
     try:
-        character = await generate_character(request.prompt)
+        character = await ai_service.generate_character(request.prompt)
         return {"character": character}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -103,7 +93,7 @@ async def ai_generate_character(request: GenerateCharacterRequest):
 async def ai_generate_scene(request: GenerateSceneRequest):
     """生成场景"""
     try:
-        scene = await generate_scene(request.prompt, request.context)
+        scene = await ai_service.generate_scene(request.prompt, request.context)
         return {"scene": scene}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -112,7 +102,7 @@ async def ai_generate_scene(request: GenerateSceneRequest):
 async def ai_generate_plotline(request: GeneratePlotlineRequest):
     """生成剧情线"""
     try:
-        plotline = await generate_plotline(request.prompt)
+        plotline = await ai_service.generate_plotline(request.prompt)
         return {"plotline": plotline}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -123,7 +113,7 @@ async def ai_generate_plotline(request: GeneratePlotlineRequest):
 async def ai_expand_content(request: ExpandContentRequest):
     """扩写内容"""
     try:
-        result = await expand_content(request.content, request.targetLength, request.context)
+        result = await ai_service.expand_content(request.content, request.targetLength, request.context)
         return {"result": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -132,7 +122,7 @@ async def ai_expand_content(request: ExpandContentRequest):
 async def ai_rewrite_content(request: RewriteContentRequest):
     """改写内容"""
     try:
-        result = await rewrite_content(request.content, request.instruction, request.context)
+        result = await ai_service.rewrite_content(request.content, request.instruction, request.context)
         return {"result": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -141,7 +131,7 @@ async def ai_rewrite_content(request: RewriteContentRequest):
 async def ai_summarize_content(request: SummarizeContentRequest):
     """压缩内容"""
     try:
-        result = await summarize_content(request.content, request.targetLength)
+        result = await ai_service.summarize_content(request.content, request.targetLength)
         return {"result": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -152,7 +142,7 @@ async def ai_summarize_content(request: SummarizeContentRequest):
 async def ai_analyze_consistency(request: AnalyzeConsistencyRequest):
     """分析一致性"""
     try:
-        result = await analyze_consistency(request.entities)
+        result = await ai_service.analyze_consistency(request.entities)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -170,7 +160,7 @@ async def ai_command(request: CommandRequest):
 
         if "创建" in command and "角色" in command:
             # 生成角色
-            character = await generate_character(command)
+            character = await ai_service.generate_character(command)
             return {
                 "success": True,
                 "message": f"已创建角色：{character.get('name')}",
@@ -178,7 +168,7 @@ async def ai_command(request: CommandRequest):
             }
         elif "生成" in command and "场景" in command:
             # 生成场景
-            scene = await generate_scene(command, None)
+            scene = await ai_service.generate_scene(command, None)
             return {
                 "success": True,
                 "message": f"已生成场景：{scene.get('title')}",
@@ -186,7 +176,7 @@ async def ai_command(request: CommandRequest):
             }
         elif "创建" in command and "剧情" in command:
             # 生成剧情线
-            plotline = await generate_plotline(command)
+            plotline = await ai_service.generate_plotline(command)
             return {
                 "success": True,
                 "message": f"已创建剧情线：{plotline.get('title')}",
@@ -195,7 +185,7 @@ async def ai_command(request: CommandRequest):
         else:
             # 默认对话
             messages = [{"role": "user", "content": command}]
-            response = await chat(messages, request.context)
+            response = await ai_service.chat(messages, request.context)
             return {
                 "success": True,
                 "message": response,

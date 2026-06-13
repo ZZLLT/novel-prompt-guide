@@ -8,8 +8,8 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import os
 
-from ai_routes import router as ai_router
-from ai_service import init_ai_client
+import ai_routes
+import ai_service
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -28,7 +28,7 @@ app.add_middleware(
 )
 
 # 注册AI路由
-app.include_router(ai_router)
+app.include_router(ai_routes.router)
 
 # ===== 配置模型 =====
 
@@ -77,14 +77,14 @@ async def startup_event():
 
     if api_key:
         try:
-            init_ai_client(api_key, base_url)
-            print(f"✅ AI客户端已初始化")
+            ai_service.init_ai_client(api_key, base_url)
+            print("AI客户端已初始化")
             print(f"   Base URL: {base_url}")
             print(f"   Model: {_config['model']}")
         except Exception as e:
-            print(f"⚠️ AI客户端初始化失败: {e}")
+            print(f"AI客户端初始化失败: {e}")
     else:
-        print("⚠️ 未设置OPENAI_API_KEY环境变量，AI功能将不可用")
+        print("未设置OPENAI_API_KEY环境变量，AI功能将不可用")
         print("   请设置环境变量或通过API配置界面设置")
 
 # ===== 基础端点 =====
@@ -141,10 +141,10 @@ async def save_llm_config(config: LlmConfigInput) -> LlmConfigOutput:
     # 重新初始化AI客户端
     if _config.get("api_key"):
         try:
-            init_ai_client(_config["api_key"], _config["endpoint"])
-            print("✅ AI客户端已重新初始化")
+            ai_service.init_ai_client(_config["api_key"], _config["endpoint"])
+            print("AI客户端已重新初始化")
         except Exception as e:
-            print(f"⚠️ AI客户端初始化失败: {e}")
+            print(f"AI客户端初始化失败: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to initialize AI client: {str(e)}")
 
     return LlmConfigOutput(
@@ -192,8 +192,7 @@ async def test_ai():
         raise HTTPException(status_code=400, detail="API key not configured")
 
     try:
-        from ai_service import chat
-        response = await chat(
+        response = await ai_service.chat(
             [{"role": "user", "content": "你好，请用一句话介绍你自己"}],
             {"workspace": "test"}
         )
@@ -203,6 +202,6 @@ async def test_ai():
 
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 启动 Novel Prompt Guide API 服务器...")
-    print("📝 文档地址: http://127.0.0.1:8000/docs")
+    print("启动 Novel Prompt Guide API 服务器...")
+    print("文档地址: http://127.0.0.1:8000/docs")
     uvicorn.run(app, host="127.0.0.1", port=8000)
