@@ -1,6 +1,5 @@
 import { AgentCommandDeck } from "./components/AgentCommandDeck";
 import { ApiSettingsWindow } from "./components/ApiSettingsWindow";
-import { ButtonShowcase } from "./components/ButtonShowcase";
 import { ChapterCockpit } from "./components/ChapterCockpit";
 import { ContextBus } from "./components/ContextBus";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -44,7 +43,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-type WorkspaceId = "setup" | "write" | "plot" | "relationships" | "world" | "agents" | "settings" | "showcase";
+type WorkspaceId = "setup" | "write" | "plot" | "relationships" | "world" | "agents" | "settings";
 type RelationshipFlowTarget = "overview" | "line-editor" | "suggestion";
 
 const workspaceItems: Array<{
@@ -60,7 +59,6 @@ const workspaceItems: Array<{
   { id: "world", label: "世界设定", detail: "故事圣经", icon: Compass },
   { id: "agents", label: "AI 协作", detail: "多 Agent", icon: Bot },
   { id: "settings", label: "设置", detail: "API 与模型", icon: Settings },
-  { id: "showcase", label: "组件展示", detail: "UI 组件库", icon: Sparkles },
 ];
 
 const workspaceGuides: Record<WorkspaceId, { cue: string; steps: string[] }> = {
@@ -71,7 +69,6 @@ const workspaceGuides: Record<WorkspaceId, { cue: string; steps: string[] }> = {
   world: { cue: "世界设定流程", steps: ["建立规则", "检查代价", "回写设定"] },
   agents: { cue: "协作流程", steps: ["提出问题", "选择 Agent", "执行下一步"] },
   settings: { cue: "模型配置流程", steps: ["填入地址", "获取模型", "分配角色模型"] },
-  showcase: { cue: "查看 UI 组件", steps: ["浏览组件", "测试交互", "了解用法"] },
 };
 
 function resolveInitialWorkspace(): WorkspaceId {
@@ -192,10 +189,6 @@ export default function App() {
   );
 
   const renderWorkspace = () => {
-    if (activeWorkspace === "showcase") {
-      return <ButtonShowcase />;
-    }
-
     if (activeWorkspace === "setup" || activeWorkspace === "world") {
       return (
         <>

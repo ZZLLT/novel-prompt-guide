@@ -1,7 +1,7 @@
 import { BookOpen, Bot, Compass, GitBranch, KeyRound, Network, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, PenLine, RefreshCcw, Settings, X } from "lucide-react";
 import type { ComponentType } from "react";
 
-type WorkspaceId = "setup" | "write" | "plot" | "relationships" | "world" | "agents" | "settings" | "showcase";
+type WorkspaceId = "setup" | "write" | "plot" | "relationships" | "world" | "agents" | "settings";
 
 export function WorkspaceSettingsWindow({
   activeWorkspace,
