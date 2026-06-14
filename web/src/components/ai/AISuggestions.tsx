@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Lightbulb, AlertCircle, Info, Sparkles, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type SuggestionType = "critical" | "warning" | "tip" | "idea";
 
@@ -85,9 +86,24 @@ export function AISuggestions({ context, onExecuteAction }: AISuggestionsProps) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
+  const [lastFetchKey, setLastFetchKey] = useState<string>("");
 
+  // 防抖和缓存优化
   useEffect(() => {
-    fetchSuggestions();
+    const fetchKey = `${context.summary.characterCount}-${context.summary.sceneCount}-${context.summary.plotlineCount}`;
+
+    // 如果上下文没有变化，不重新获取
+    if (fetchKey === lastFetchKey) {
+      return;
+    }
+
+    // 延迟500ms，避免频繁请求
+    const timer = setTimeout(() => {
+      fetchSuggestions();
+      setLastFetchKey(fetchKey);
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [context.summary.characterCount, context.summary.sceneCount, context.summary.plotlineCount]);
 
   async function fetchSuggestions() {
@@ -102,13 +118,24 @@ export function AISuggestions({ context, onExecuteAction }: AISuggestionsProps) 
       });
 
       if (!response.ok) {
-        throw new Error("获取建议失败");
+        if (response.status === 404) {
+          throw new Error("后端服务未启动，请先启动AI服务");
+        } else if (response.status === 500) {
+          throw new Error("AI服务内部错误，请检查日志");
+        } else {
+          throw new Error(`获取建议失败 (${response.status})`);
+        }
       }
 
       const data = await response.json();
       setSuggestions(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "未知错误");
+      if (err instanceof TypeError && err.message.includes("fetch")) {
+        setError("⚠️ 无法连接到AI服务，请确保后端已启动");
+      } else {
+        setError(err instanceof Error ? err.message : "未知错误");
+      }
+      console.error("Failed to fetch suggestions:", err);
     } finally {
       setLoading(false);
     }
@@ -161,7 +188,10 @@ export function AISuggestions({ context, onExecuteAction }: AISuggestionsProps) 
 
       {loading && (
         <div className="ai-suggestions-loading">
-          <div className="animate-pulse">正在分析...</div>
+          <Skeleton className="h-16 w-full mb-3" />
+          <Skeleton className="h-24 w-full mb-2" />
+          <Skeleton className="h-24 w-full mb-2" />
+          <Skeleton className="h-24 w-full" />
         </div>
       )}
 

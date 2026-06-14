@@ -6755,3 +6755,102 @@ a:hover { text-decoration: underline; }
 .assistant-drawer-content > * {
   flex-shrink: 0;
 }
+
+
+/* ===== 命令历史记录 ===== */
+
+.smart-command-input-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.history-toggle {
+  position: absolute;
+  right: var(--sp-2);
+  padding: var(--sp-1);
+  height: auto;
+}
+
+.command-history-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: var(--sp-2);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  max-height: 300px;
+  overflow: hidden;
+  animation: slideDown var(--duration) var(--ease);
+}
+
+.command-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-subtle);
+}
+
+.command-history-list {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.command-history-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--duration) var(--ease);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.command-history-item:hover {
+  background: var(--color-bg-subtle);
+}
+
+.command-history-item:active {
+  background: var(--color-bg-muted);
+}
+
+.command-history-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 历史记录滚动条样式 */
+.command-history-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.command-history-list::-webkit-scrollbar-track {
+  background: var(--color-bg-subtle);
+}
+
+.command-history-list::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 3px;
+}
+
+.command-history-list::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-faint);
+}
