@@ -11,6 +11,7 @@ import { StoryFlowMap } from "./components/StoryFlowMap";
 import { StoryUniverseDeck } from "./components/StoryUniverseDeck";
 import { WorkspaceSettingsWindow } from "./components/WorkspaceSettingsWindow";
 import { PromptLibrary } from "./components/prompts/PromptLibrary";
+import { PromptLibraryBrowser } from "./components/prompts/PromptLibraryBrowser";
 import { CharacterGallery } from "./components/character/CharacterGallery";
 import { SceneKanban } from "./components/scene/SceneKanban";
 import { PlotlineManager } from "./components/plotline/PlotlineManager";
@@ -329,15 +330,15 @@ export default function App() {
               {featureHint}
             </div>
           )}
-          <Panel title="提示词库" eyebrow="Prompt Templates">
-            <PromptLibrary
-              onSendToAssistant={(content) => {
-                // TODO: 将内容发送到AI助手
-                console.log("发送到AI助手:", content);
-                alert("提示词已准备好，请在AI助手中使用！");
+          <div style={{height: '100%', display: 'flex', flexDirection: 'column', padding: '0 32px'}}>
+            <PromptLibraryBrowser
+              onUsePrompt={(prompt) => {
+                console.log("使用提示词:", prompt);
+                showFeatureHint(`✅ 已选择提示词：${prompt.title}`);
+                // TODO: 将提示词发送到AI助手或命令输入
               }}
             />
-          </Panel>
+          </div>
         </>
       );
     }
